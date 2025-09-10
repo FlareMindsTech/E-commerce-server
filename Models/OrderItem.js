@@ -1,14 +1,15 @@
 import mongoose from "mongoose";
+
 const orderItemSchema = new mongoose.Schema(
   {
     order: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: "Order", 
+      ref: "Order",      // Links to parent order
       required: true 
     },
-    product_variant: { 
+    product: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: "ProductVariant", 
+      ref: "Product", 
       required: true 
     },
     quantity: { 
@@ -18,9 +19,8 @@ const orderItemSchema = new mongoose.Schema(
     },
     price: { 
       type: Number, 
-      required: true, 
-     
-     
+      required: true,
+      min: 0           // Always good to enforce non-negative price
     }
   },
   { timestamps: true }

@@ -7,15 +7,10 @@ const recentViewedSchema = new mongoose.Schema(
       ref: "User", 
       required: true 
     },
-    product_variant: { 
+    product: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: "ProductVariant", 
+      ref: "Product", 
       required: true 
-    },
-    device: { 
-      type: String, 
-      enum: ["mobile", "desktop", "tablet", "other"], 
-      default: "other" 
     }
   },
   { timestamps: true }
