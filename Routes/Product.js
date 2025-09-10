@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-// Create a new product
+// Create product
 router.post("/create", createProduct);
 
 // Get all products
