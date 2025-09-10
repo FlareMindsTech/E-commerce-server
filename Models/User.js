@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 });
 
-// Generate fullName + auto password before save
+// Auto fullName + auto-generate password
 userSchema.pre("save", async function (next) {
   this.fullName = `${this.firstName} ${this.lastName}`;
 
@@ -42,11 +42,10 @@ userSchema.pre("save", async function (next) {
     const randomChar = specialChars[Math.floor(Math.random() * specialChars.length)];
     const plainPassword = first3 + last4 + randomChar;
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(plainPassword, salt);
 
-    // Save plain password temporarily (for sending email)
+    // save plain password temporarily for controller
     this._plainPassword = plainPassword;
   }
   next();

@@ -53,6 +53,7 @@ export const updateAddress = async (req, res) => {
   }
 };
 
+// Delete address
 export const deleteAddress = async (req, res) => {
   try {
     const address = await Address.findByIdAndDelete(req.params.id);
