@@ -1,51 +1,26 @@
-import User from '../Models/User.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import User from "../Models/User.js";
 
-export const UserController = {
+// Register User
+export const registerUser = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone } = req.body;
 
-  register: async (req, res) => {
-    try {
-      const { name, email, password, phone } = req.body;
+    // Create user
+    const user = new User({ firstName, lastName, email, phone });
 
-      const exists = await User.findOne({ email });
-      if (exists) return res.status(409).json({ success: false, message: 'Email already registered' });
+    await user.save();
 
-      // Hash password using bcrypt
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      const user = await User.create({
-        name,
-        email,
-        phone,
-        password: hashedPassword
-      });
-
-      const token = jwt.sign({ id: user._id, role: 'customer', kind: 'user' }, process.env.JWT_SECRET, { expiresIn: '7d' });
-      res.json({ success: true, token, user });
-
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  },
-
-  login: async (req, res) => {
-    try {
-      const { email, password } = req.body;
-
-      const user = await User.findOne({ email }).select("+password");
-      if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-
-      const valid = await bcrypt.compare(password, user.password);
-      if (!valid) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-
-      const token = jwt.sign({ id: user._id, role: 'customer', kind: 'user' }, process.env.JWT_SECRET, { expiresIn: '7d' });
-      res.json({ success: true, token, user });
-
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        password: user.password, // showing password in response for testing (not safe for production)
+      },
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
-
 };
