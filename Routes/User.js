@@ -1,32 +1,23 @@
-import mongoose from "mongoose";
+import express from "express";
+import { 
+  createUser, 
+  loginUser,   // ✅ import login controller
+  getAllUsers, 
+  getUserById, 
+  updateUser, 
+  deleteUser 
+}from "../Controller/User.js";
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { 
-      type: String,
-      required: true,
-      trim: true
-     },
-    email: {
-      type: String,
-      unique: true,
-      lowercase: true,
-      required: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/],
-    },
-    password: {
-      type: String,
-      minlength: [8],
-      maxlength: [128],
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["customer", "admin", "staff"],
-      default: "customer",
-    },
-  },
-  { timestamps: true }
-);
-export default mongoose.model("User", userSchema);
+const router = express.Router();
+
+// Auth routes
+router.post("/create", createUser);  // Register
+router.post("/login", loginUser);    // ✅ Login
+
+// User CRUD routes
+router.get("/all", getAllUsers);
+router.get("/id/:id", getUserById);
+router.put("/update/:id", updateUser);
+router.delete("/delete/:id", deleteUser);
+
+export default router;
