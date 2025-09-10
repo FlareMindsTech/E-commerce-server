@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const orderSchema = new mongoose.Schema(
   {
     user: { 
@@ -11,6 +12,13 @@ const orderSchema = new mongoose.Schema(
       ref: "Address", 
       required: true 
     },
+    orderItems: [
+      { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "OrderItem", 
+        required: true 
+      }
+    ],
     status: { 
       type: String, 
       enum: ["pending", "confirmed", "shipped", "delivered", "cancelled", "returned", "refunded"], 
@@ -25,7 +33,7 @@ const orderSchema = new mongoose.Schema(
       ref: "Payment" 
     },
     total_amount: { type: Number, required: true }, 
-    notes: String 
+    notes: String
   },
   { timestamps: true }
 );

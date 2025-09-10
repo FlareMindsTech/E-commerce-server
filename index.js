@@ -3,11 +3,32 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-dotenv.config();
 const app = express();
+
+import userRoutes from './Routes/User.js';
+// import adminRoutes from './Routes/Admin.js';
+import addressRoutes from './Routes/Address.js';
+import cartRoutes from './Routes/CartItem.js';
+import categoryRoutes from './Routes/Category.js';
+import productRoutes from './Routes/Product.js';
+import RecentViewed from './Routes/RecentlyViewed.js';
+import wishListRoutes from './Routes/WishList.js';
+import reviewRoutes from "./Routes/Review.js";
+import reportRoutes from "./Routes/Report.js";
+import orderItemRoutes from "./Routes/OrderItem.js";
+import offerRoutes from "./Routes/Offer.js";
+import orderRoutes from "./Routes/Order.js";
+import paymentRoutes from "./Routes/Payment.js";
+import notificationRoutes from "./Routes/Notification.js";
+
+
+
+
+dotenv.config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());  
+
 
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://127.0.0.1:27017/ecommercedatabase")
@@ -27,6 +48,24 @@ mongoose.connect("mongodb://127.0.0.1:27017/ecommercedatabase")
 app.get("/", (req, res) => {
   res.send("welcome to Billing Software Server"); 
 });
+
+app.use("/api/users", userRoutes);
+// app.use("/api/admins", adminRoutes);
+app.use("/api/addresses", addressRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/recently-viewed", RecentViewed);
+app.use("/api/wishlist", wishListRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/order-items", orderItemRoutes);
+app.use("/api/offers", offerRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
+
+
 
 const PORT = process.env.PORT || 7000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
