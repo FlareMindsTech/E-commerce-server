@@ -1,14 +1,48 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
-const specialChars = "!@#$%^&*()_+";
-
-const userSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: true,
-    trim: true,
-    set: (v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 30,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 30,
+    },
+    email: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      required: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/],
+    },
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+      match: [/^[0-9]{10}$/, "Phone number must be 10 digits"], // ✅ validation
+    },
+    password: {
+      type: String,
+      minlength: 4,
+      maxlength: 128,
+      required: true,
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["customer", "admin", "staff"],
+      default: "customer",
+    },
   },
   lastName: {
     type: String,
@@ -32,30 +66,29 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 });
 
-// Generate fullName + auto password before save
-userSchema.pre("save", async function (next) {
-  this.fullName = `${this.firstName} ${this.lastName}`;
-
-  if (this.isNew) {
-    const first3 = this.firstName.slice(0, 3);
-    const last4 = this.phone.slice(-4);
-    const randomChar = specialChars[Math.floor(Math.random() * specialChars.length)];
-    const plainPassword = first3 + last4 + randomChar;
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(plainPassword, salt);
-
-    // Save plain password temporarily (for sending email)
-    this._plainPassword = plainPassword;
+// Pre-save hook to capitalize first/last name & auto-generate password
+userSchema.pre("save", function (next) {
+  if (this.firstName) {
+    this.firstName =
+      this.firstName.charAt(0).toUpperCase() +
+      this.firstName.slice(1).toLowerCase();
   }
+  if (this.lastName) {
+    this.lastName =
+      this.lastName.charAt(0).toUpperCase() +
+      this.lastName.slice(1).toLowerCase();
+  }
+
+  // Auto-generate password if not already set
+  if (!this.isModified("password") && this.isNew) {
+    const firstPart =
+      this.firstName.slice(0, 4).charAt(0).toUpperCase() +
+      this.firstName.slice(1, 4).toLowerCase();
+    const lastPart = this.phone.slice(-4);
+    this.password = `${firstPart}@${lastPart}`;
+  }
+
   next();
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
-
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);

@@ -27,7 +27,7 @@ const addressSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      match: [/^\d{10}$/, "Phone number must be 10 digits"], 
+      match: [/^[0-9]{10,15}$/, "Please enter a valid phone number"], // allows 10–15 digits
     },
     is_default: {
       type: Boolean,
