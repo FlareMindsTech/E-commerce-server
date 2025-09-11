@@ -1,9 +1,8 @@
 import express from "express";
 import {
   addToWishlist,
-  getWishlistByUser,
-  deleteWishlistItem,
-  clearWishlist
+  getWishlist,
+  removeFromWishlist,
 } from "../Controller/WishList.js";
 
 const router = express.Router();
@@ -12,12 +11,10 @@ const router = express.Router();
 router.post("/add", addToWishlist);
 
 // Get all wishlist items of a user
-router.get("/Id/:userId", getWishlistByUser);
+router.get("/Id/:userId", getWishlist);
 
 // Delete a single wishlist item
-router.delete("/delete/:id", deleteWishlistItem);
+router.delete("/delete/:id", removeFromWishlist);
 
-// Clear all wishlist items of a user
-router.delete("/clear/:userId", clearWishlist);
 
 export default router;

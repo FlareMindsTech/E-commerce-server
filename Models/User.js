@@ -1,59 +1,76 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
-const specialChars = "!@#$%^&*()_+";
+// Capitalize helper
+const capitalizeName = (name) => {
+  return name
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
 
 const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: true,
-    trim: true,
-    set: (v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
+    set: capitalizeName,
   },
   lastName: {
     type: String,
     required: true,
-    trim: true,
-    set: (v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
-  },
-  fullName: { type: String },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+    set: (val) => val.charAt(0).toUpperCase() + val.slice(1).toLowerCase(),
   },
   phone: {
     type: String,
     required: true,
-    unique: true,
-    match: [/^\d{10}$/, "Phone number must be 10 digits"],
+    match: /^[0-9]{10}$/,
   },
-  password: { type: String, required: true },
-});
+  email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    match: [/^\S+@\S+\.\S+$/, "Invalid email"],
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+    select: false,
+  },
+  confirmPassword: {
+    type: String,
+    required: true,
+    validate: {
+      validator: function (el) {
+        return el === this.password;
+      },
+      message: "Passwords do not match",
+    },
+  },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+}, { timestamps: true });
 
-// Auto fullName + auto-generate password
+// Hash password
 userSchema.pre("save", async function (next) {
-  this.fullName = `${this.firstName} ${this.lastName}`;
-
-  if (this.isNew) {
-    const first3 = this.firstName.slice(0, 3);
-    const last4 = this.phone.slice(-4);
-    const randomChar = specialChars[Math.floor(Math.random() * specialChars.length)];
-    const plainPassword = first3 + last4 + randomChar;
-
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(plainPassword, salt);
-
-    // save plain password temporarily for controller
-    this._plainPassword = plainPassword;
-  }
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  this.confirmPassword = undefined; // remove confirmPassword from DB
   next();
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// Compare password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 const User = mongoose.model("User", userSchema);

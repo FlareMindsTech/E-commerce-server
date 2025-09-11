@@ -4,21 +4,20 @@ const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Category name is required"],
+      required: true, 
       trim: true,
-      minlength: [3, "Category name must be at least 3 characters"],
-      maxlength: [50, "Category name cannot exceed 50 characters"],
+      minlength: 3, 
+      maxlength: 50,
     },
     description: {
       type: String,
       trim: true,
-      maxlength: [200, "Description cannot exceed 200 characters"],
+      maxlength:200,
     },
     status: {
       type: String,
       enum: {
         values: ["active", "inactive"],
-        message: "Status must be either active or inactive",
       },
       default: "active",
     },

@@ -16,6 +16,6 @@ const recentViewedSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-recentViewedSchema.index({ user: 1, product_variant: 1 }, { unique: true });
+recentViewedSchema.index({ user: 1, t: 1 }, { unique: true });
 
 export default mongoose.model("RecentViewed", recentViewedSchema);

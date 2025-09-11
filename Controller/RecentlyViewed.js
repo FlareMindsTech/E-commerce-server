@@ -3,10 +3,10 @@ import RecentViewed from "../Models/RecentlyViewed.js";
 // ✅ Add or update recent viewed
 export const addRecentViewed = async (req, res) => {
   try {
-    const { user, product_variant } = req.body;
+    const { user, product } = req.body;
 
     // Check if this user already viewed this product
-    let recent = await RecentViewed.findOne({ user, product_variant });
+    let recent = await RecentViewed.findOne({ user, product });
 
     if (recent) {
       // Update timestamp (touch it so it's "recent")
@@ -16,7 +16,7 @@ export const addRecentViewed = async (req, res) => {
     }
 
     // Else create new
-    recent = new RecentViewed({ user, product_variant });
+    recent = new RecentViewed({ user, t });
     await recent.save();
 
     res.status(201).json({ message: "Added to recent viewed", data: recent });
@@ -32,7 +32,7 @@ export const getRecentViewedByUser = async (req, res) => {
 
     const recentViewed = await RecentViewed.find({ user: userId })
       .populate({
-        path: "product_variant",
+        path: "product",
         populate: { path: "product", model: "Product" } // if ProductVariant has product ref
       })
       .sort({ updatedAt: -1 });

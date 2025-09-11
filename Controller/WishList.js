@@ -1,13 +1,13 @@
-import Wishlist from "../models/Wishlist.js";
+import Wishlist from "../Models/Wishlist.js";
 
 // Add product to wishlist (toggle style)
 export const addToWishlist = async (req, res) => {
   try {
-    const { product_variant } = req.body;
+    const { product } = req.body;
     const userId = req.user._id;
 
     // check if already exists
-    const exists = await Wishlist.findOne({ user: userId, product_variant });
+    const exists = await Wishlist.findOne({ user: userId, product });
 
     if (exists) {
       // toggle: remove if already in wishlist
@@ -18,7 +18,7 @@ export const addToWishlist = async (req, res) => {
       });
     }
 
-    const wishlist = new Wishlist({ user: userId, product_variant });
+    const wishlist = new Wishlist({ user: userId, product });
     await wishlist.save();
 
     res.status(201).json({
@@ -42,7 +42,7 @@ export const getWishlist = async (req, res) => {
 
     const wishlist = await Wishlist.find({ user: userId })
       .populate({
-        path: "product_variant",
+        path: "product",
         populate: { path: "product" }, // if productVariant has product reference
       });
 

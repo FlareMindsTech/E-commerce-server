@@ -12,7 +12,7 @@ const router = express.Router();
 // Create new address
 router.post("/create", createAddress);
 
-// Get all addresses (admin)
+// Get all addresses
 router.get("/all", getAllAddresses);
 
 // Get addresses by user

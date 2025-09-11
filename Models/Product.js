@@ -2,22 +2,21 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: [true, "Product category is required"],
+    category: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Category", 
+      required: true 
     },
-    name: {
-      type: String,
-      required: [true, "Product name is required"],
-      trim: true,
-      minlength: [3, "Product name must be at least 3 characters"],
-      maxlength: [200, "Product name cannot exceed 200 characters"],
+    name: { 
+      type: String, 
+      required: true, 
+      trim: true, 
+      maxlength: 200 
     },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: [2000, "Description cannot exceed 2000 characters"],
+    description: { 
+      type: String, 
+      trim: true, 
+      maxlength: 2000 
     },
     images: [
       {
@@ -29,31 +28,28 @@ const productSchema = new mongoose.Schema(
         },
       },
     ],
-    sku: {
-      type: String,
-      unique: true,
-      required: [true, "SKU is required"],
-      uppercase: true,
-      trim: true,
+    sku: { 
+      type: String, 
+      unique: true, 
+      required: true, 
+      uppercase: true, 
+      trim: true 
+    }, 
+    stock: { 
+      type: Number, 
+      default: 0, 
+      min: 0 
+    }, 
+    price: { 
+      type: Number, 
+      required: true, 
+      min: 0 
     },
-    stock: {
-      type: Number,
-      default: 0,
-      min: [0, "Stock cannot be negative"],
-    },
-    price: {
-      type: Number,
-      required: [true, "Price is required"],
-      min: [0, "Price cannot be negative"],
-    },
-    status: {
-      type: String,
-      enum: {
-        values: ["active", "inactive"],
-        message: "Status must be either active or inactive",
-      },
-      default: "active",
-    },
+    status: { 
+      type: String, 
+      enum: ["active", "inactive"], 
+      default: "active" 
+    }
   },
   { timestamps: true }
 );
