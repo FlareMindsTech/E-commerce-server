@@ -31,7 +31,7 @@ app.use(cors());
 
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://127.0.0.1:27017/ecommercedatabase")
+mongoose.connect("mongodb://localhost:27017/ecommercedatabase")
   .then(() => console.log("You! Connected to MongoDB..."))
   .catch((err) =>
     console.error("Could not connect to MongoDB... " + err.message)

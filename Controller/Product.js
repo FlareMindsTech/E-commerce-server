@@ -1,54 +1,120 @@
 import Category from "../Models/Category.js";
 import Product from "../Models/Product.js";
-// Create product
+
+// Create Product
 export const createProduct = async (req, res) => {
   try {
-    const { category, name, description, images, sku, stock, price, status } = req.body;
+    const { category, name, description, images, status, variants } = req.body;
 
+    // Validate category exists
     const cat = await Category.findById(category);
-    if (!cat) return res.status(404).json({ message: "Category not found" });
+    if (!cat) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
 
-    const product = await Product.create({ category, name, description, images, sku, stock, price, status });
-    res.status(201).json({ message: "Product created", product });
+    // Check duplicate SKUs in variants
+    if (variants && variants.length > 0) {
+      for (let v of variants) {
+        const existingProduct = await Product.findOne({ "variants.sku": v.sku });
+        if (existingProduct) {
+          return res.status(400).json({ success: false, message: `SKU ${v.sku} already exists` });
+        }
+      }
+    }
+
+    const product = await Product.create({
+      category,
+      name,
+      description,
+      images,
+      status: status || "active",
+      variants: variants || []
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: product
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // Get all products
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate("category", "name");
-    res.json(products);
+    const products = await Product.find()
+      .populate("category", "name")
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: products.length,
+      data: products
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // Get product by ID
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category", "name");
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+    const product = await Product.findById(req.params.id)
+      .populate("category", "name");
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    res.json({ success: true, data: product });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // Update product
 export const updateProduct = async (req, res) => {
   try {
-    const { category, name, description, images, sku, stock, price, status } = req.body;
+    const { category, name, description, images, status, variants } = req.body;
+
+    // If category provided, check it exists
+    if (category) {
+      const cat = await Category.findById(category);
+      if (!cat) {
+        return res.status(404).json({ success: false, message: "Category not found" });
+      }
+    }
+
+    // Check duplicate SKUs in variants
+    if (variants && variants.length > 0) {
+      for (let v of variants) {
+        const existingProduct = await Product.findOne({
+          "variants.sku": v.sku,
+          _id: { $ne: req.params.id }
+        });
+        if (existingProduct) {
+          return res.status(400).json({ success: false, message: `SKU ${v.sku} already exists` });
+        }
+      }
+    }
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { category, name, description, images, sku, stock, price, status },
+      { category, name, description, images, status, variants },
       { new: true, runValidators: true }
     ).populate("category", "name");
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json({ message: "Product updated", product });
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Product updated successfully",
+      data: product
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -56,9 +122,75 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json({ message: "Product deleted" });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Decrease stock for a variant
+export const decreaseStock = async (req, res) => {
+  try {
+    const { productId, variantSku, quantity } = req.body;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const variant = product.variants.find(v => v.sku === variantSku);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Variant not found" });
+    }
+
+    if (variant.stock < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${variant.stock} items left in stock for ${variantSku}`,
+      });
+    }
+
+    variant.stock -= quantity;
+    await product.save();
+
+    res.json({
+      success: true,
+      message: `Stock decreased by ${quantity} for ${variantSku}`,
+      data: product
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Increase stock for a variant
+export const increaseStock = async (req, res) => {
+  try {
+    const { productId, variantSku, quantity } = req.body;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const variant = product.variants.find(v => v.sku === variantSku);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Variant not found" });
+    }
+
+    variant.stock += quantity;
+    await product.save();
+
+    res.json({
+      success: true,
+      message: `Stock increased by ${quantity} for ${variantSku}`,
+      data: product
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
