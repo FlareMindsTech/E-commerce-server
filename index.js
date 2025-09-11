@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+
 import cors from 'cors';
 
 const app = express();
@@ -20,8 +21,6 @@ import offerRoutes from "./Routes/Offer.js";
 import orderRoutes from "./Routes/Order.js";
 import paymentRoutes from "./Routes/Payment.js";
 import notificationRoutes from "./Routes/Notification.js";
-
-
 
 
 dotenv.config();

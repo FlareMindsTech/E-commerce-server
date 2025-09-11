@@ -1,23 +1,26 @@
 import express from "express";
 import {
   registerUser,
+  verifyUser,
   loginUser,
   forgotPassword,
   resetPassword,
+  adminOnly
+ 
 } from "../Controller/User.js";
+
 import { Auth, authorizeRoles } from "../Middleware/Auth.js";
 
 const router = express.Router();
 
-// Public
+// Public routes
 router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.post("/forgot-password", forgotPassword);
-router.put("/reset-password/:token", resetPassword);
+router.get("/verify/:token", verifyUser);
+// router.post("/login", loginUser);
+// router.post("/forgot-password", forgotPassword);
+// router.post("/reset-password/:token", resetPassword);
 
-// Protected Example
-router.get("/admin", Auth, authorizeRoles("admin"), (req, res) => {
-  res.json({ message: "Welcome Admin" });
-});
+// Protected + role-based
+// router.get("/admin-only", Auth, authorizeRoles("admin"), adminOnly);
 
 export default router;
