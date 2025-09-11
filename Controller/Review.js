@@ -6,7 +6,6 @@ export const createReview = async (req, res) => {
   try {
     const { product, user, rating, comment } = req.body;
 
-    // Validate product_variant exists
     const variant = await Product.findById(product);
     if (!variant) {
       return res.status(404).json({ message: "Product Variant not found" });
