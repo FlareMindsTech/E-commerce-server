@@ -7,13 +7,16 @@ import {
 
 const router = express.Router();
 
-// Add to wishlist
+// Add to wishlist (user only)
 router.post("/add", addToWishlist);
 
-// Get all wishlist items of a user
-router.get("/Id/:userId", getWishlist);
+// Get wishlist for the logged-in user
+router.get("/me", getWishlist);
 
-// Delete a single wishlist item
+// Get wishlist for a specific user (admin usage)
+router.get("/:userId", getWishlist);
+
+// Delete a single wishlist item (user only)
 router.delete("/delete/:id", removeFromWishlist);
 
 
