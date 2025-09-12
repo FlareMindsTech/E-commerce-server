@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";  
+import bcrypt from "bcrypt";
 
 // Capitalize helper
 const capitalizeName = (name) => {
@@ -30,13 +30,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Email is required"],
       lowercase: true,
+      unique: true,
       match: [/\S+@\S+\.\S+/, "Invalid email"],
     },
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // don’t return password in queries unless explicitly asked
+      select: false, // don’t return password by default
     },
     role: {
       type: String,
@@ -45,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: false,
+      default: true, // ✅ Auto-verified at registration
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
