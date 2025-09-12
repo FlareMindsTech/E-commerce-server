@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: true, // ✅ Auto-verified at registration
+      default: true, // Auto-verified
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,

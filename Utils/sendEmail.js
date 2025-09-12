@@ -13,13 +13,12 @@ export const sendEmail = async (to, subject, text) => {
       tls: { rejectUnauthorized: false },
     });
 
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: `"Boutique App" <${process.env.SMTP_USER}>`,
       to,
       subject,
       text,
     });
-
   } catch (error) {
     console.error("Error sending email:", error);
     throw new Error("Email could not be sent");

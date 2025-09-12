@@ -10,7 +10,7 @@ const generateToken = (id, role) => {
 
 // ---------------- CONTROLLERS ----------------
 
-// Register (No email verification)
+// Register
 export const registerUser = async (req, res) => {
   try {
     const { firstName, lastName, phone, email, password, confirmPassword } = req.body;
@@ -50,7 +50,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Forgot Password (Send reset email)
+// Forgot Password
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -62,11 +62,10 @@ export const forgotPassword = async (req, res) => {
     const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     user.resetPasswordToken = resetTokenHash;
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
     await user.save();
 
     const resetURL = `http://localhost:7000/api/users/reset-password/${resetToken}`;
-
     await sendEmail(user.email, "Password Reset", `Click here to reset: ${resetURL}`);
 
     res.json({ message: "Password reset link sent to email" });
@@ -75,7 +74,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// Reset Password (Accept new password)
+// Reset Password
 export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -105,7 +104,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Admin-only route
+// Admin-only
 export const adminOnly = async (req, res) => {
   res.json({ message: "Welcome Admin! Only admins can see this." });
 };

@@ -3,18 +3,19 @@ import {
   addToWishlist,
   getWishlist,
   removeFromWishlist,
-} from "../Controller/WishList.js";
+} from "../Controller/Wishlist.js";
+
+import { Auth } from "../Middleware/Auth.js";
 
 const router = express.Router();
 
 // Add to wishlist
-router.post("/add", addToWishlist);
+router.post("/add", Auth, addToWishlist);
 
-// Get all wishlist items of a user
-router.get("/Id/:userId", getWishlist);
+// Get wishlist of logged-in user
+router.get("/all", Auth, getWishlist);
 
-// Delete a single wishlist item
-router.delete("/delete/:id", removeFromWishlist);
-
+// Delete wishlist item
+router.delete("/delete/:id", Auth, removeFromWishlist);
 
 export default router;
