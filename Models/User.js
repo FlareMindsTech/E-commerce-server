@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: [true, "Phone is required"],
+      unique: true,
       match: [/^[0-9]{10}$/, "Phone must be 10 digits"],
     },
     email: {
@@ -37,7 +38,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // don’t return password by default
+      select: false,
+    },
+    profileImage: {
+      type: String,
+      default: "",
     },
     role: {
       type: String,
@@ -46,7 +51,7 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: true, // Auto-verified
+      default: true,
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
