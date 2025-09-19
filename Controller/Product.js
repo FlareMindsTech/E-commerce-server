@@ -12,11 +12,17 @@ export const createProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: "Category not found" });
     }
 
+    // Check if product name already exists
+    const existingProduct = await Product.findOne({ name: name.trim() });
+    if (existingProduct) {
+      return res.status(400).json({ success: false, message: "Product name already exists" });
+    }
+
     // Check duplicate SKUs in variants
     if (variants && variants.length > 0) {
       for (let v of variants) {
-        const existingProduct = await Product.findOne({ "variants.sku": v.sku });
-        if (existingProduct) {
+        const existingSku = await Product.findOne({ "variants.sku": v.sku });
+        if (existingSku) {
           return res.status(400).json({ success: false, message: `SKU ${v.sku} already exists` });
         }
       }
@@ -44,17 +50,33 @@ export const createProduct = async (req, res) => {
 // Get all products
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find()
-      .populate("category", "name")
-      .sort({ createdAt: -1 });
+    const { search } = req.query;
+    let query = {};
 
-    res.json({
-      success: true,
-      count: products.length,
-      data: products
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    if (search) {
+      const regex = { $regex: search, $options: "i" };
+      query.$or = [
+        { name: regex },
+        { description: regex },
+        { "variants.sku": regex },
+        { "variants.color": regex },
+        { "variants.size": regex },
+        // price is numeric, so convert search to number if possible
+        { "variants.price": isNaN(search) ? -1 : Number(search) }
+      ];
+    }
+
+    const products = await Product.find(query)
+      .populate("category", "name")
+      .lean();
+
+    if (!products.length) {
+      return res.status(404).json({ success: false, message: "No products found" });
+    }
+
+    res.json({ success: true, data: products });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -63,9 +85,11 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate("category", "name");
+
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
+
     res.json({ success: true, data: product });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
