@@ -183,6 +183,32 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// ---------------- Get User By ID ----------------
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---------------- Get All Users (already exists but explicitly) ----------------
+export const getAll = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    if (!users.length) {
+      return res.status(404).json({ success: false, message: "No users found" });
+    }
+    res.json({ success: true, data: users });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 
 

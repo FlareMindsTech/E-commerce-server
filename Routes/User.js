@@ -6,7 +6,9 @@ import {
   resetPassword,
   getAllUsers,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserById,
+  getAll
 } from "../Controller/User.js";
 
 import { Auth, authorizeRoles } from "../Middleware/Auth.js";
@@ -18,9 +20,12 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
+router.get("/all", getAll);        // Get all users
+router.get("/byId:id", getUserById);    // Get user by ID
 
 // ---------- Protected Routes ----------
 router.get("/users", getAllUsers);
+
 
 // Update user (Admin &
 router.put("/update/:id", updateUser);
