@@ -6,22 +6,23 @@ import {
   updateCategory,
   deleteCategory,
 } from "../Controller/Category.js";
+import { Auth, authorizeRoles } from "../Middleware/Auth.js";
 
 const router = express.Router();
 
-// Create a new category
-router.post("/create", createCategory);
+// Create category (Admin & Super Admin)
+router.post("/create", Auth, authorizeRoles("admin", "super admin"), createCategory);
 
-// Get all categories
-router.get("/all", getAllCategories);
+// Get all categories (All roles)
+router.get("/all", Auth, authorizeRoles("user", "admin", "super admin"), getAllCategories);
 
-// Get category by ID
-router.get("/Id/:id", getCategoryById);
+// Get category by ID (All roles)
+router.get("/byId/:id", Auth, authorizeRoles("user", "admin", "super admin"), getCategoryById);
 
-// Update category
-router.put("/update/:id", updateCategory);
+// Update category (Admin & Super Admin)
+router.put("/update/:id", Auth, authorizeRoles("admin", "super admin"), updateCategory);
 
-// Delete category
-router.delete("/delete/:id", deleteCategory);
+// Delete category (Super Admin only)
+router.delete("/delete/:id", Auth, authorizeRoles("super admin"), deleteCategory);
 
 export default router;

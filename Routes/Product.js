@@ -7,29 +7,42 @@ import {
   deleteProduct,
   decreaseStock,
   increaseStock,
+  uploadProductImage, // upload handler
+  upload,             // multer middleware
+
 } from "../Controller/Product.js";
+import { Auth, authorizeRoles } from "../Middleware/Auth.js";
 
 const router = express.Router();
 
-// Create product
-router.post("/create", createProduct);
+// Create product (Admin & SuperAdmin)
+router.post("/create", Auth, authorizeRoles("admin", "super admin"), createProduct);
 
-// Get all products
-router.get("/all", getAllProducts);
+// Get all products (All roles)
+router.get("/all", Auth, authorizeRoles("user", "admin", "super admin"), getAllProducts);
 
-// Get product by ID
-router.get("/Id/:id", getProductById);
+// Get product by ID (All roles)
+router.get("/byId/:id", Auth, authorizeRoles("user", "admin", "super admin"), getProductById);
 
-// Update product
-router.put("/update/:id", updateProduct);
+// Update product (Admin & SuperAdmin)
+router.put("/update/:id", Auth, authorizeRoles("admin", "super admin"), updateProduct);
 
-// Delete product
-router.delete("/delete/:id", deleteProduct);
+// Delete product (SuperAdmin only)
+router.delete("/delete/:id", Auth, authorizeRoles("super admin"), deleteProduct);
 
-// Decrease stock
-router.post("/stock/decrease", decreaseStock);
+// Decrease stock (Admin & SuperAdmin)
+router.post("/stock/decrease", Auth, authorizeRoles("admin", "super admin"), decreaseStock);
 
-// Increase stock
-router.post("/stock/increase", increaseStock);
+// Increase stock (Admin & SuperAdmin)
+router.post("/stock/increase", Auth, authorizeRoles("admin", "super admin"), increaseStock);
 
+// Upload product image
+// Upload product image (Admin & SuperAdmin)
+router.post(
+  "/upload",
+  Auth,
+  authorizeRoles("admin", "super admin"),
+  upload.single("file"),
+  uploadProductImage
+);
 export default router;

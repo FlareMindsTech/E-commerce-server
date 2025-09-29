@@ -2,10 +2,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from "path";
 
 const app = express();
 
 import userRoutes from './Routes/User.js';
+import adminRoutes from './Routes/Admin.js';  
 // import adminRoutes from './Routes/Admin.js';
 import addressRoutes from './Routes/Address.js';
 import cartRoutes from './Routes/CartItem.js';
@@ -48,7 +50,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", userRoutes);
-// app.use("/api/admins", adminRoutes);
+app.use("/api/admins", adminRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -62,6 +64,9 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/notifications", notificationRoutes);
+
+// Make uploads folder public
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 

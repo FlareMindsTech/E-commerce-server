@@ -5,13 +5,18 @@ import {
   forgotPassword,
   resetPassword,
   getAllUsers,
-  updateUser,
-  deleteUser,
   getUserById,
-  getAll
+  getUserProfile,
+  updateUserProfile,
+  deleteUserProfile,
+  uploadProfileImage,
+  getProfileImage,
+  deleteProfileImage
 } from "../Controller/User.js";
 
 import { Auth, authorizeRoles } from "../Middleware/Auth.js";
+import { upload } from  "../Utils/upload.js";
+
 
 const router = express.Router();
 
@@ -20,19 +25,26 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
-router.get("/all", getAll);        // Get all users
-router.get("/byId:id", getUserById);    // Get user by ID
 
-// ---------- Protected Routes ----------
-router.get("/users", getAllUsers);
+// ---------- Admin Routes ----------
+// GET /admin/users?search=abc&role=user&page=1&limit=10
+router.get("/all", Auth, authorizeRoles("admin", "super admin"), getAllUsers);
+router.get("/byId/:id", Auth, authorizeRoles("admin", "super admin"), getUserById);
 
 
-// Update user (Admin &
-router.put("/update/:id", updateUser);
 
-// Delete user (Admin & Superadmin only)
-router.delete("/delete/:id", deleteUser);
+// ---------- Normal User Routes ----------
+router.get("/me", Auth, getUserProfile);            // view own profile
+router.put("/update/:id", Auth, updateUserProfile); // update any user by id (if allowed)
+router.delete("/delete/:id", Auth, deleteUserProfile); // delete any user by id (if allowed)
 
-// Admin Only Test Route
+// Upload profile image
+router.post("/upload-profile", Auth, upload.single("profileImage"), uploadProfileImage);
+
+// Get profile image by userId
+router.get("/profile-image/:id", getProfileImage);
+
+// Delete profile image
+router.delete("/delete-profile-image", Auth, deleteProfileImage);
 
 export default router;

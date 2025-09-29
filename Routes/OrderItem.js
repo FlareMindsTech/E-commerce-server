@@ -6,13 +6,15 @@ import {
   updateOrderItem,
   deleteOrderItem
 } from "../Controller/OrderItem.js";
+import { Auth } from "../Middleware/Auth.js";
 
 const router = express.Router();
 
-router.post("/create", createOrderItem);          // Create
-router.get("/all", getAllOrderItems);          // Get all
-router.get("/Id/:id", getOrderItemById);       // Get one
-router.put("/update/:id", updateOrderItem);        // Update
-router.delete("/delete/:id", deleteOrderItem);     // Delete
+router.post("/create", Auth,createOrderItem);          // Create
+router.get("/all",Auth, getAllOrderItems);       // Get all 
+    // Get all
+router.get("/byId/:id",Auth, getOrderItemById);       // Get one
+router.put("/update/:id", Auth,updateOrderItem);        // Update
+router.delete("/delete/:id",Auth, deleteOrderItem);     // Delete
 
 export default router;

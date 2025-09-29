@@ -2,23 +2,42 @@ import mongoose from "mongoose";
 
 const cartItemSchema = new mongoose.Schema(
   {
-    user_id: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true, // each cart item belongs to a user
     },
     product: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product", 
+      ref: "Product",
       required: true,
+    },
+    variant: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      required: true 
     },
     quantity: {
       type: Number,
-      default: 1,
+      required: true,
       min: 1,
+      default: 1,
+    },
+    price: {
+      type: Number,
+      required: true, // snapshot of price at time of adding
+    },
+    subtotal: {
+      type: Number,
+      required: true,
     },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
+
+// Pre-save middleware to calculate subtotal automatically
+cartItemSchema.pre("save", function (next) {
+  this.subtotal = this.quantity * this.price;
+  next();
+});
 
 export default mongoose.model("CartItem", cartItemSchema);

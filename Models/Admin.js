@@ -18,8 +18,8 @@ const adminSchema = new mongoose.Schema(
      },
     role: { 
         type: String, 
-        enum: ["super_admin", "staff"], 
-        default: "staff" },
+        enum: ["super admin", "admin"], 
+        default: "admin" },
   },
   { timestamps: true, versionKey: false }
 );

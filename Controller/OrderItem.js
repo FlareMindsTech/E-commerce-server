@@ -20,13 +20,37 @@ export const createOrderItem = async (req, res) => {
 };
 
 // ✅ Get all order items
+
+
 export const getAllOrderItems = async (req, res) => {
   try {
-    const orderItems = await OrderItem.find()
-      .populate("order", "status totalAmount")
-      .populate("product", "name price");
+    let { page = 1, limit = 10, search = "", sortBy = "createdAt", order = "desc" } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-    res.json(orderItems);
+    // Fetch order items
+    let orderItems = await OrderItem.find()
+      .populate({
+        path: "product",
+        select: "name price",
+        match: search ? { name: { $regex: search, $options: "i" } } : {},
+      })
+      .populate("order", "status total_amount")
+      .sort({ [sortBy]: order === "desc" ? -1 : 1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    // Remove items where product didn't match search
+    orderItems = orderItems.filter(item => item.product);
+
+    const total = await OrderItem.countDocuments();
+
+    res.json({
+      total,
+      page,
+      limit,
+      data: orderItems,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

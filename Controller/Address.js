@@ -6,11 +6,13 @@ export const createAddress = async (req, res) => {
   try {
     const { user_id, city, state, pincode, country, phone, is_default } = req.body;
 
-    // check user exists
+    if (req.user.role.toLowerCase() === "user" && req.user._id.toString() !== user_id) {
+      return res.status(403).json({ message: "Users can only create their own addresses" });
+    }
+
     const user = await User.findById(user_id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // if this is default, remove other defaults
     if (is_default) {
       await Address.updateMany({ user_id }, { is_default: false });
     }
@@ -31,27 +33,93 @@ export const createAddress = async (req, res) => {
   }
 };
 
-//Get all addresses (admin use)
+// Get all addresses with search & pagination
 export const getAllAddresses = async (req, res) => {
   try {
-    const addresses = await Address.find().populate("user_id", "name email");
-    res.json(addresses);
+    const { search, page = 1, limit = 10 } = req.query;
+
+    // Only admin/superadmin can see all addresses
+    if (!["admin", "super admin"].includes(req.user.role.toLowerCase())) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const skip = (page - 1) * limit;
+    const query = {};
+
+    if (search) {
+      const regex = { $regex: search, $options: "i" };
+      query.$or = [
+        { city: regex },
+        { state: regex },
+        { country: regex },
+        { pincode: regex },
+        { phone: regex },
+      ];
+    }
+
+    const total = await Address.countDocuments(query);
+    const addresses = await Address.find(query)
+      .populate("user_id", "name email")
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    res.json({
+      success: true,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: addresses,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-//Get addresses of a specific user
+// Get addresses of a specific user
 export const getUserAddresses = async (req, res) => {
   try {
-    const addresses = await Address.find({ user_id: req.params.userId });
-    res.json(addresses);
+    const userId = req.params.userId;
+
+    // Users can only access their own addresses
+    if (req.user.role.toLowerCase() === "user" && req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const { search, page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const query = { user_id: userId };
+    if (search) {
+      const regex = { $regex: search, $options: "i" };
+      query.$or = [
+        { city: regex },
+        { state: regex },
+        { country: regex },
+        { pincode: regex },
+        { phone: regex },
+      ];
+    }
+
+    const total = await Address.countDocuments(query);
+    const addresses = await Address.find(query)
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    res.json({
+      success: true,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+      data: addresses,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-//Update address
+// Update address
 export const updateAddress = async (req, res) => {
   try {
     const { city, state, pincode, country, phone, is_default } = req.body;
@@ -59,7 +127,11 @@ export const updateAddress = async (req, res) => {
     const address = await Address.findById(req.params.id);
     if (!address) return res.status(404).json({ message: "Address not found" });
 
-    // ensure only one default
+    // Users can only update their own addresses
+    if (req.user.role.toLowerCase() === "user" && req.user._id.toString() !== address.user_id.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     if (is_default) {
       await Address.updateMany({ user_id: address.user_id }, { is_default: false });
     }
@@ -76,8 +148,15 @@ export const updateAddress = async (req, res) => {
 // Delete address
 export const deleteAddress = async (req, res) => {
   try {
-    const address = await Address.findByIdAndDelete(req.params.id);
+    const address = await Address.findById(req.params.id);
     if (!address) return res.status(404).json({ message: "Address not found" });
+
+    // Users can only delete their own addresses
+    if (req.user.role.toLowerCase() === "user" && req.user._id.toString() !== address.user_id.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    await Address.deleteOne({ _id: req.params.id });
     res.json({ message: "Address deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

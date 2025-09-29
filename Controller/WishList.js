@@ -37,13 +37,34 @@ export const getWishlist = async (req, res) => {
 };
 
 // Remove a wishlist item (still by wishlist _id)
+
+// Remove a wishlist item
 export const removeFromWishlist = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id; // logged-in user
+
   try {
-    const deleted = await Wishlist.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Wishlist item not found" });
+    const wishlistItem = await Wishlist.findById(id);
+    if (!wishlistItem) return res.status(404).json({ message: "Wishlist item not found" });
+
+    // Only owner can delete
+    if (wishlistItem.user.toString() !== userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    await wishlistItem.remove();
     res.status(200).json({ message: "Wishlist item removed" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+
+
+
+
+
+
+

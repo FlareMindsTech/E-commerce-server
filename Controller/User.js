@@ -2,6 +2,8 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../Models/User.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import fs from "fs";
+import path from "path";
 
 // JWT Token
 const generateToken = (id, role) => {
@@ -76,6 +78,7 @@ export const loginUser = async (req, res) => {
     const token = generateToken(user._id, user.role);
     res.json({
       token,
+      id:user._id,
       role: user.role,
       name: `${user.firstName} ${user.lastName}`,
       profileImage: user.profileImage,
@@ -198,17 +201,15 @@ export const getUserById = async (req, res) => {
 };
 
 // ---------------- Get All Users (already exists but explicitly) ----------------
-export const getAll = async (req, res) => {
-  try {
-    const users = await User.find().select("-password");
-    if (!users.length) {
-      return res.status(404).json({ success: false, message: "No users found" });
-    }
-    res.json({ success: true, data: users });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+
+
+
+
+
+
+
+
+
 
 
 
@@ -232,11 +233,13 @@ export const getAll = async (req, res) => {
 
 
 // ---------------- Get All Users ----------------
+// Get All Users with Pagination & Search
 export const getAllUsers = async (req, res) => {
   try {
-    const { search, role } = req.query;
-    let query = {};
+    const { search, role, page = 1, limit = 10 } = req.query; // default page 1, limit 10
+    const query = {};
 
+    // Search by name, email, phone, role
     if (search) {
       query.$or = [
         { firstName: { $regex: search, $options: "i" } },
@@ -247,70 +250,114 @@ export const getAllUsers = async (req, res) => {
       ];
     }
 
+    // Filter by role
     if (role) query.role = role;
 
-    const users = await User.find(query).select("-password");
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const users = await User.find(query)
+      .select("-password")
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
     if (!users.length) {
       return res.status(404).json({ success: false, message: "No users found" });
     }
 
-    res.json({ success: true, data: users });
+    res.json({
+      success: true,
+      page: parseInt(page),
+      totalPages,
+      totalUsers: total,
+      users,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// ---------------- Update User ----------------
-export const updateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { firstName, lastName, phone, email, profileImage, role } = req.body;
 
-    let user = await User.findById(id);
+
+
+
+
+
+
+
+
+// ---------------- Update User ----------------
+
+
+
+// ---------------- Admin Only ----------------
+
+
+
+// Get own profile
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ success: true, data: user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// Update user by id (normal or admin)
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, phone, email, profileImage } = req.body;
+    const userId = req.params.id;
+
+    // If normal user, ensure they can only update their own profile
+    if (req.user.role === "user" && req.user.id !== userId) {
+      return res.status(403).json({ message: "You are not allowed to update this user" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Email validation
+    // Check duplicate email/phone
     if (email) {
-      const emailRegex = /\S+@\S+\.\S+/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Invalid email format" });
-      }
+      const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingEmail) return res.status(400).json({ message: "Email already in use" });
     }
-
-    // Phone validation
     if (phone) {
-      const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(phone)) {
-        return res.status(400).json({ message: "Phone number must be 10 digits" });
-      }
+      const existingPhone = await User.findOne({ phone, _id: { $ne: userId } });
+      if (existingPhone) return res.status(400).json({ message: "Phone already in use" });
     }
 
-    // Update fields
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
-    user.phone = phone || user.phone;
     user.email = email || user.email;
+    user.phone = phone || user.phone;
     user.profileImage = profileImage || user.profileImage;
-    user.role = role || user.role;
 
     await user.save();
-
     res.json({ message: "User updated successfully", user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// ---------------- Delete User ----------------
-export const deleteUser = async (req, res) => {
+// Delete user by id (normal or admin)
+export const deleteUserProfile = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.params.id;
 
-    const user = await User.findById(id);
+    // If normal user, ensure they can only delete their own profile
+    if (req.user.role === "user" && req.user.id !== userId) {
+      return res.status(403).json({ message: "You are not allowed to delete this user" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     await user.deleteOne();
-
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -318,7 +365,65 @@ export const deleteUser = async (req, res) => {
 };
 
 
-// ---------------- Admin Only ----------------
-export const adminOnly = async (req, res) => {
-  res.json({ message: "Welcome Admin!" });
+
+
+// ---------------- Upload Profile Image ----------------
+export const uploadProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Delete old image if exists
+    if (user.profileImage && fs.existsSync(user.profileImage)) {
+      fs.unlinkSync(user.profileImage);
+    }
+
+    user.profileImage = req.file.path;
+    await user.save();
+
+    res.json({ message: "Profile image uploaded successfully", profileImage: user.profileImage });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---------------- Get Profile Image ----------------
+export const getProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || !user.profileImage) {
+      return res.status(404).json({ message: "Profile image not found" });
+    }
+
+    res.sendFile(path.resolve(user.profileImage));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---------------- Delete Profile Image ----------------
+export const deleteProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.profileImage) {
+      return res.status(400).json({ message: "No profile image to delete" });
+    }
+
+    if (fs.existsSync(user.profileImage)) {
+      fs.unlinkSync(user.profileImage);
+    }
+
+    user.profileImage = "";
+    await user.save();
+
+    res.json({ message: "Profile image deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
