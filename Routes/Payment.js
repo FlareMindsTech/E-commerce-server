@@ -1,27 +1,36 @@
 import express from "express";
 import {
   createPayment,
+  verifyRazorpayPayment,
+  refundPayment,
+  razorpayWebhook,
   getPaymentById,
-  updatePayment,
-  deletePayment,
   getAllPayments
 } from "../Controller/Payment.js";
-
+import { Auth, authorizeRoles } from "../Middleware/Auth.js";
+import bodyParser from "body-parser";
 const router = express.Router();
 
-// Create payment
-router.post("/create", createPayment);
+// ✅ Create a payment for an order
+router.post("/create", Auth, createPayment);
 
-// Get payment by ID
-router.get("/Id/:id", getPaymentById);
+// ✅ Verify payment (after successful Razorpay payment)
+router.post("/verify", Auth, verifyRazorpayPayment);
 
-// Update payment
-router.put("/update/:id", updatePayment);
+// ✅ Refund a payment (admin only)
+router.post("/refund", Auth, authorizeRoles("super admin", "admin"), refundPayment);
 
-// Delete payment
-router.delete("/delete/:id", deletePayment);
+// ✅ Razorpay Webhook (no auth needed)
+// ✅ Razorpay Webhook (must use raw body!)
+router.post(
+  "/webhook",
+  bodyParser.raw({ type: "application/json" }), // <-- this is critical
+  razorpayWebhook
+);
+// ✅ Get payment by ID
+router.get("/:id", Auth, getPaymentById);
 
-// Get all payments
-router.get("/all", getAllPayments);
+// ✅ Get all payments (admin only)
+router.get("/all", Auth, authorizeRoles("admin"), getAllPayments);
 
 export default router;

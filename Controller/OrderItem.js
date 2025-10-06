@@ -1,4 +1,4 @@
-import OrderItem from "../Models/OrderItem.js";
+import OrderItem from "../Models/Orderitem.js";
 
 // ✅ Create Order Item
 export const createOrderItem = async (req, res) => {

@@ -30,7 +30,7 @@ export const fileFilter = (req, file, cb) => {
 export const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 500 * 1024 * 1024 },
 });
 
 // ------------------- Controllers -------------------
@@ -121,6 +121,9 @@ export const getAllProducts = async (req, res) => {
           ]
         }
       ];
+      if (!isNaN(search)) {
+        query.$or.push({ "variants.price": Number(search) });
+  }
     }
 
     // Sorting

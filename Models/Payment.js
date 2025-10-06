@@ -1,40 +1,53 @@
 import mongoose from "mongoose";
+import crypto from "crypto";
+
 const paymentSchema = new mongoose.Schema(
   {
-    order: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Order", 
-      required: true 
+    order: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      required: true
     },
-    amount: { 
-      type: Number, 
-      required: true, 
-      min: 0 
-      // ⚡ store in smallest unit (paise/cents) for accuracy 
+    amount: {
+      type: Number,
+      required: true,
+      min: 0 // store in paise
     },
-    method: { 
-      type: String, 
-      enum: ["UPI", "Card", "Cash", "NetBanking", "Wallet"], 
-      required: true 
+    currency: {
+      type: String,
+      default: "INR",
+      uppercase: true
     },
-    status: { 
-      type: String, 
-      enum: ["pending", "success", "failed", "refunded"], 
-      default: "pending" 
+    method: {
+      type: String,
+      enum: ["UPI", "Card", "Wallet", "NetBanking", "Cash"],
+      default: "UPI"
     },
-    transaction_id: { 
-      type: String, 
-      unique: true, 
-      sparse: true, // allows multiple nulls
-      trim: true 
+    status: {
+      type: String,
+      enum: ["created", "paid", "failed", "refunded"],
+      default: "created"
     },
-    payment_gateway: { 
-      type: String, 
-      enum: ["Razorpay", "Stripe", "PayPal", "Cashfree", "Other"], 
-      default: "Other" 
-    }
+    // Razorpay-specific fields
+    razorpayOrderId: String,
+    razorpayPaymentId: String,
+    razorpaySignature: String,
+    notes: mongoose.Schema.Types.Mixed
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
+
+// Verify Razorpay signature
+paymentSchema.methods.verifyRazorpaySignature = function(
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+  keySecret
+) {
+  const hmac = crypto.createHmac("sha256", keySecret);
+  hmac.update(`${razorpayOrderId}|${razorpayPaymentId}`);
+  const generatedSignature = hmac.digest("hex");
+  return generatedSignature === razorpaySignature;
+};
 
 export default mongoose.model("Payment", paymentSchema);

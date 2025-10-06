@@ -8,20 +8,19 @@ const app = express();
 
 import userRoutes from './Routes/User.js';
 import adminRoutes from './Routes/Admin.js';  
-// import adminRoutes from './Routes/Admin.js';
 import addressRoutes from './Routes/Address.js';
-import cartRoutes from './Routes/CartItem.js';
+import cartRoutes from './Routes/Cartitem.js';
 import categoryRoutes from './Routes/Category.js';
 import productRoutes from './Routes/Product.js';
-import RecentViewed from './Routes/RecentlyViewed.js';
-import wishListRoutes from './Routes/WishList.js';
+import wishListRoutes from './Routes/Wishlist.js';
 import reviewRoutes from "./Routes/Review.js";
 import reportRoutes from "./Routes/Report.js";
-import orderItemRoutes from "./Routes/OrderItem.js";
+import orderItemRoutes from "./Routes/Orderitem.js";
 import offerRoutes from "./Routes/Offer.js";
 import orderRoutes from "./Routes/Order.js";
 import paymentRoutes from "./Routes/Payment.js";
 import notificationRoutes from "./Routes/Notification.js";
+import carouselRoutes from "./Routes/Carousel.js";
 
 
 dotenv.config();
@@ -31,7 +30,7 @@ app.use(cors());
 
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://localhost:27017/ecommercedatabase")
+mongoose.connect("mongodb+srv://kartheeshwaran:kartheeshwaran@cluster0.toj6q.mongodb.net/ecommerce")
   .then(() => console.log("You! Connected to MongoDB..."))
   .catch((err) =>
     console.error("Could not connect to MongoDB... " + err.message)
@@ -55,7 +54,6 @@ app.use("/api/addresses", addressRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/recently-viewed", RecentViewed);
 app.use("/api/wishlist", wishListRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/reports", reportRoutes);
@@ -64,6 +62,8 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/carousel", carouselRoutes);
+
 
 // Make uploads folder public
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
