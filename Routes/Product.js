@@ -19,7 +19,7 @@ const router = express.Router();
 router.post("/create", Auth, authorizeRoles("admin", "super admin"), createProduct);
 
 // Get all products (All roles)
-router.get("/all", Auth, authorizeRoles("user", "admin", "super admin"), getAllProducts);
+router.get("/all",  getAllProducts);
 
 // Get product by ID (All roles)
 router.get("/byId/:id", Auth, authorizeRoles("user", "admin", "super admin"), getProductById);
