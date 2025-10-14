@@ -12,7 +12,7 @@ import addressRoutes from './Routes/Address.js';
 import cartRoutes from './Routes/Cartitem.js';
 import categoryRoutes from './Routes/Category.js';
 import productRoutes from './Routes/Product.js';
-import wishListRoutes from './Routes/Wishlist.js';
+import wishListRoutes from './Routes/WishList.js';
 import reviewRoutes from "./Routes/Review.js";
 import reportRoutes from "./Routes/Report.js";
 import orderItemRoutes from "./Routes/Orderitem.js";
