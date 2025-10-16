@@ -90,7 +90,7 @@ export const deleteOrder = async (req, res) => {
 // ✅ Get All Orders (with filters, pagination, search)
 export const getAllOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, paymentStatus, startDate, endDate } = req.query;
+    const { page, limit, search, status, paymentStatus, startDate, endDate } = req.query;
 
     let query = {};
 
@@ -116,16 +116,25 @@ export const getAllOrders = async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    // Fetch orders
-    let orders = await Order.find(query)
+    let ordersQuery = Order.find(query)
       .populate("user", "name email")
       .populate("address")
       .populate({ path: "orderItems", populate: { path: "product" } })
       .populate("offer")
       .populate("payment")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .sort({ createdAt: -1 });
+
+    // Apply pagination only if limit is provided
+    let currentPage = 1;
+    let perPage = 0;
+
+    if (limit) {
+      currentPage = parseInt(page) || 1;
+      perPage = parseInt(limit);
+      ordersQuery = ordersQuery.skip((currentPage - 1) * perPage).limit(perPage);
+    }
+
+    let orders = await ordersQuery;
 
     // Filter by payment status after populate
     if (paymentStatus) {
@@ -136,16 +145,17 @@ export const getAllOrders = async (req, res) => {
 
     res.json({
       success: true,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: limit ? currentPage : 1,
+      limit: limit ? perPage : total,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: limit ? Math.ceil(total / perPage) : 1,
       orders
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 // ✅ Confirm order payment and send email
 export const confirmOrderPayment = async (orderId) => {
   try {

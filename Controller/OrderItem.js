@@ -22,23 +22,31 @@ export const createOrderItem = async (req, res) => {
 // ✅ Get all order items
 
 
+
 export const getAllOrderItems = async (req, res) => {
   try {
-    let { page = 1, limit = 10, search = "", sortBy = "createdAt", order = "desc" } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
+    let { page, limit, search = "", sortBy = "createdAt", order = "desc" } = req.query;
 
-    // Fetch order items
-    let orderItems = await OrderItem.find()
+    let orderItemsQuery = OrderItem.find()
       .populate({
         path: "product",
         select: "name price",
         match: search ? { name: { $regex: search, $options: "i" } } : {},
       })
       .populate("order", "status total_amount")
-      .sort({ [sortBy]: order === "desc" ? -1 : 1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+      .sort({ [sortBy]: order === "desc" ? -1 : 1 });
+
+    // Apply pagination only if limit is provided
+    let currentPage = 1;
+    let perPage = 0;
+
+    if (limit) {
+      currentPage = parseInt(page) || 1;
+      perPage = parseInt(limit);
+      orderItemsQuery = orderItemsQuery.skip((currentPage - 1) * perPage).limit(perPage);
+    }
+
+    let orderItems = await orderItemsQuery;
 
     // Remove items where product didn't match search
     orderItems = orderItems.filter(item => item.product);
@@ -47,14 +55,15 @@ export const getAllOrderItems = async (req, res) => {
 
     res.json({
       total,
-      page,
-      limit,
+      page: limit ? currentPage : 1,
+      limit: limit ? perPage : total,
       data: orderItems,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // ✅ Get single order item by ID
 export const getOrderItemById = async (req, res) => {
