@@ -1,9 +1,13 @@
 import express from "express";
-import { Auth } from "../Middleware/Auth.js";
 import {
-  createOrderItem, getAllOrderItems, getOrderItemById,
-  updateOrderItem, deleteOrderItem
-} from "../Controller/Orderitem.js";
+  createOrderItem,
+  getAllOrderItems,
+  getOrderItemById,
+  updateOrderItem,
+  deleteOrderItem
+} from "../Controller/OrderItem.js";
+import { Auth } from "../Middleware/Auth.js";
+
 
 const router = express.Router();
 

@@ -30,7 +30,7 @@ app.use(cors());
 
 
 mongoose.set("strictQuery", false);
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect("mongodb+srv://sivakumar:siva@cluster0.ufpyq.mongodb.net/boutique")
   .then(() => console.log("You! Connected to MongoDB..."))
   .catch((err) =>
     console.error("Could not connect to MongoDB... " + err.message)
