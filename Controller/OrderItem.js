@@ -1,6 +1,6 @@
-import OrderItem from "../Models/Orderitem.js";
+import OrderItem from "../Models/OrderItem.js";
 
-// ✅ Create Order Item
+// Create
 export const createOrderItem = async (req, res) => {
   try {
     const { order, product, quantity, price } = req.body;
@@ -19,29 +19,36 @@ export const createOrderItem = async (req, res) => {
   }
 };
 
-// ✅ Get all order items
-
-
+// Get All
 export const getAllOrderItems = async (req, res) => {
   try {
-    let { page = 1, limit = 10, search = "", sortBy = "createdAt", order = "desc" } = req.query;
+    let {
+      page = 1,
+      limit = 10,
+      search = "",
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
     page = parseInt(page);
     limit = parseInt(limit);
 
-    // Fetch order items
-    let orderItems = await OrderItem.find()
+    const findQuery = search
+      ? { name: { $regex: search, $options: "i" } }
+      : {};
+
+    const orderItems = await OrderItem.find()
       .populate({
         path: "product",
         select: "name price",
-        match: search ? { name: { $regex: search, $options: "i" } } : {},
+        match: findQuery
       })
-      .populate("order", "status total_amount")
+      .populate("order", "status totalAmount")
       .sort({ [sortBy]: order === "desc" ? -1 : 1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    // Remove items where product didn't match search
-    orderItems = orderItems.filter(item => item.product);
+    const filteredItems = orderItems.filter(item => item.product);
 
     const total = await OrderItem.countDocuments();
 
@@ -49,14 +56,15 @@ export const getAllOrderItems = async (req, res) => {
       total,
       page,
       limit,
-      data: orderItems,
+      data: filteredItems
     });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ Get single order item by ID
+// Get by ID
 export const getOrderItemById = async (req, res) => {
   try {
     const orderItem = await OrderItem.findById(req.params.id)
@@ -66,31 +74,35 @@ export const getOrderItemById = async (req, res) => {
     if (!orderItem) {
       return res.status(404).json({ message: "Order Item not found" });
     }
+
     res.json(orderItem);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ Update order item
+// Update
 export const updateOrderItem = async (req, res) => {
   try {
-    const updatedOrderItem = await OrderItem.findByIdAndUpdate(
+    const updated = await OrderItem.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
 
-    if (!updatedOrderItem) {
+    if (!updated) {
       return res.status(404).json({ message: "Order Item not found" });
     }
-    res.json(updatedOrderItem);
+
+    res.json(updated);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ✅ Delete order item
+// Delete
 export const deleteOrderItem = async (req, res) => {
   try {
     const deleted = await OrderItem.findByIdAndDelete(req.params.id);
@@ -98,7 +110,9 @@ export const deleteOrderItem = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ message: "Order Item not found" });
     }
+
     res.json({ message: "Order Item deleted successfully" });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

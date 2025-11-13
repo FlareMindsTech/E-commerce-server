@@ -15,15 +15,6 @@ const router = express.Router();
 // ✅ Create a new order (authenticated users)
 router.post("/create", Auth, createOrder);
 
-// ✅ Get a specific order by ID (authenticated users)
-router.get("/:id", Auth, getOrderById);
-
-// ✅ Update an order by ID (admin only)
-router.put("/:id", Auth, updateOrder);
-
-// ✅ Delete an order by ID 
-router.delete("/:id", Auth,  deleteOrder);
-
 // ✅ Get all orders with filters, pagination, search (admin can see all, users see their own)
 router.get("/all", Auth, getAllOrders);
 
@@ -41,5 +32,14 @@ router.post("/refund/:id", Auth,  async (req, res) => {
   if (result.success) return res.json(result);
   res.status(500).json(result);
 });
+
+// ✅ Get a specific order by ID (authenticated users)
+router.get("/:id", Auth, getOrderById);
+
+// ✅ Update an order by ID (admin only)
+router.put("/:id", Auth, updateOrder);
+
+// ✅ Delete an order by ID 
+router.delete("/:id", Auth,  deleteOrder);
 
 export default router;

@@ -1,26 +1,43 @@
 import Order from "../Models/Order.js";
-import OrderItem from "../Models/Orderitem.js";
+import OrderItem from "../Models/OrderItem.js";
 import Payment from "../Models/Payment.js";
 import mongoose from "mongoose";
 import { sendEmail } from "../Utils/sendemail.js";
+import { generateInvoicePDF } from "../Utils/generateInvoice.js";
+import fs from "fs";
 
 
-// ✅ Create Order (without payment logic)
+// ✅ Create Order using existing OrderItem IDs
 export const createOrder = async (req, res) => {
   try {
-    const { user, address, total_amount, notes } = req.body;
+    const { user, address, orderItems, total_amount, notes } = req.body;
 
-    // 1️⃣ Create order
-    const order = await Order.create({ user, address, total_amount, notes });
+    if (!orderItems || orderItems.length === 0)
+      return res.status(400).json({ message: "Order items are required" });
+
+    const order = await Order.create({
+      user,
+      address,
+      orderItems,
+      total_amount,
+      notes
+    });
+
+    const fullOrder = await Order.findById(order._id)
+      .populate("user")
+      .populate("address")
+      .populate({ path: "orderItems", populate: { path: "product" } });
 
     res.status(201).json({
-      message: "Order created successfully. Use payment API to complete payment.",
-      order,
+      message: "Order created successfully",
+      order: fullOrder
     });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // ✅ Get Order by ID
 export const getOrderById = async (req, res) => {
@@ -45,16 +62,32 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-// ✅ Update Order
+// ✅ Update Order (safe update)
 export const updateOrder = async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    )
+    .populate("user")
+    .populate("address")
+    .populate({ path: "orderItems", populate: { path: "product" } })
+    .populate("offer")
+    .populate("payment");
+
+    if (!updatedOrder)
+      return res.status(404).json({ message: "Order not found" });
+
+    res.json({
+      success: true,
+      message: "Order updated successfully",
+      order: updatedOrder
     });
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    res.json({ message: "Order updated", order });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,27 +182,77 @@ export const getAllOrders = async (req, res) => {
 // ✅ Confirm order payment and send email
 export const confirmOrderPayment = async (orderId) => {
   try {
-    const order = await Order.findById(orderId).populate("user");
-    if (!order) return { success: false, message: "Order not found" };
 
-    // Update order status
+    // ✅ Fetch order with full population
+    const order = await Order.findById(orderId)
+      .populate("user", "firstName lastName email")
+      .populate({
+        path: "orderItems",
+        populate: { path: "product", select: "name price" }
+      });
+
+    // ✅ If order not found
+    if (!order) {
+      console.log("Order not found for ID:", orderId);
+      return { success: false, message: "Order not found" };
+    }
+
+    // ✅ Debug: Check if user exists
+    console.log("POPULATED USER:", order.user);
+
+    // ✅ If order.user is null -> this is the cause of your error
+    if (!order.user) {
+      console.log("ERROR: Order has NO USER field. Fix your order creation logic.");
+      return { success: false, message: "Order has no assigned user" };
+    }
+
+    // ✅ Update order status
     order.status = "confirmed";
     await order.save();
 
-    // Send email if user email exists
-    if (order.user && order.user.email) {
-      const subject = `Your Order #${order._id} is Confirmed`;
-      const text = `Hi ${order.user.name},\n\nYour payment has been successfully received and your order is confirmed.\n\nOrder ID: ${order._id}\nTotal Amount: ₹${order.total_amount}\n\nThank you for shopping with us!`;
+    // ✅ Generate PDF invoice safely
+    const pdfPath = await generateInvoicePDF(order);
 
-      await sendEmail(order.user.email, subject, text);
+    // ✅ Prepare user data safely
+    const userFirst = order.user.firstName || "Customer";
+    const userLast = order.user.lastName || "";
+    const userName = `${userFirst} ${userLast}`.trim();
+
+    // ✅ Email user only if email exists
+    if (order.user.email) {
+      const subject = `Your Order #${order._id} is Confirmed`;
+      const text = `Hi ${userName}, your payment is confirmed. Invoice attached.`;
+
+      const html = `
+        <div style="font-family: Arial; padding: 20px;">
+          <h2 style="color: #4CAF50;">Order Confirmed ✅</h2>
+          <p>Hello <b>${userName}</b>,</p>
+          <p>Your payment is confirmed and your invoice is attached.</p>
+          <p><b>Order ID:</b> ${order._id}</p>
+          <p><b>Total:</b> ₹${order.total_amount}</p>
+        </div>
+      `;
+
+      await sendEmail(order.user.email, subject, text, html, pdfPath);
     }
 
-    return { success: true, message: "Order confirmed and email sent", order };
+    // ✅ Delete PDF after sending (cleanup)
+    if (fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+    }
+
+    return {
+      success: true,
+      message: "Order confirmed and invoice emailed",
+      order
+    };
+
   } catch (error) {
     console.error("Confirm Order Error:", error.message);
     return { success: false, message: error.message };
   }
 };
+
 // ✅ Refund order payment and send email
 export const refundOrderPayment = async (orderId, amount) => {
   try {
