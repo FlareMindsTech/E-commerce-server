@@ -78,49 +78,83 @@ export const generateInvoicePDF = async (order) => {
     doc.moveDown(6);
 
     // ---------------- ORDER DETAILS CARD ----------------
-    let detailsBoxY = doc.y;
-    doc.roundedRect(40, detailsBoxY, 520, 40, 10).fill(soft).stroke(accent);
-    doc.fillColor(primary).fontSize(16).text("ORDER DETAILS", 60, detailsBoxY + 10);
-    doc.y = detailsBoxY + 60;
+let detailsBoxY = doc.y;
+const boxWidth = 520;
+const boxHeight = 40;
+const boxX = 40;
 
-    // ---------------- TABLE HEADER ----------------
-    const tableY = doc.y;
-    const col1 = 50,
-      col2 = 260,
-      col3 = 360,
-      col4 = 450;
+// Draw the rounded box
+doc.roundedRect(boxX, detailsBoxY, boxWidth, boxHeight, 10)
+  .fill(soft)
+  .stroke(accent);
 
-    doc.fontSize(12)
-      .fillColor(text)
-      .text("Product", col1, tableY)
-      .text("Price", col2, tableY)
-      .text("Qty", col3, tableY)
-      .text("Total", col4, tableY);
+// Calculate centered text position
+const texts = "ORDER DETAILS";
+doc.fontSize(16).fillColor(primary);
 
-    doc.moveTo(40, tableY + 18).lineTo(550, tableY + 18).stroke(accent);
+const textWidth = doc.widthOfString(text);
+const textX = boxX + (boxWidth - textWidth) / 2.5;   // center horizontally
+const textY = detailsBoxY + (boxHeight - 16) / 2;  // center vertically (approx)
 
-    // ---------------- TABLE ROWS ----------------
-    let rowY = tableY + 25;
-    let subtotal = 0;
+doc.text(texts, textX, textY);
 
-    order.orderItems.forEach((item) => {
-      const productName = item.product?.name || "Unknown Product";
-      const price = item.price || 0;
-      const qty = item.quantity || 1;
-      const total = price * qty;
-      subtotal += total;
+doc.y = detailsBoxY + boxHeight + 20; // move cursor below the card
 
-      doc.fillColor(text)
-        .text(productName, col1, rowY)
-        .text(`${price}`, col2, rowY)
-        .text(String(qty), col3, rowY)
-        .text(`${total}`, col4, rowY);
+// ---------------- TABLE HEADER CARD ----------------
+const headerCardY = doc.y;
+const headerCardX = 40;
+const headerCardWidth = 520;
+const headerCardHeight = 35;
+const headerBg = "#D9D9D9";
+const headerTextColor = "#111111";
 
-      rowY += 22;
-      doc.strokeColor("#EEE").moveTo(40, rowY).lineTo(550, rowY).stroke();
-    });
+doc.roundedRect(headerCardX, headerCardY, headerCardWidth, headerCardHeight, 10)
+  .fillAndStroke(headerBg, headerBg);
 
-    doc.y = rowY + 30;
+// Column positions
+const col0 = 60;   // Serial No
+const col1 = 100;  // Product
+const col2 = 280;  // Price
+const col3 = 370;  // Qty
+const col4 = 460;  // Total
+
+doc.font("Helvetica-Bold")
+  .fontSize(12)
+  .fillColor(headerTextColor)
+  .text("S.No", col0, headerCardY + 10)
+  .text("Product", col1, headerCardY + 10)
+  .text("Price", col2, headerCardY + 10)
+  .text("Qty", col3, headerCardY + 10)
+  .text("Total", col4, headerCardY + 10);
+
+doc.y = headerCardY + headerCardHeight + 10;
+
+// ---------------- TABLE ROWS ----------------
+let rowY = doc.y;
+let subtotal = 0;
+
+doc.font("Helvetica").fillColor("#111");
+
+order.orderItems.forEach((item, index) => {
+  const productName = item.product?.name || "Unknown Product";
+  const price = item.price || 0;
+  const qty = item.quantity || 1;
+  const total = price * qty;
+  subtotal += total;
+
+  // Draw row values with serial number
+  doc.text(String(index + 1), col0, rowY)
+    .text(productName, col1, rowY)
+    .text(`${price}`, col2, rowY)
+    .text(String(qty), col3, rowY)
+    .text(`${total}`, col4, rowY);
+
+  rowY += 22;
+  doc.strokeColor("#E5E7EB").moveTo(40, rowY).lineTo(550, rowY).stroke();
+});
+
+doc.y = rowY + 30;
+
 
     // ---------------- TAX CALCULATIONS ----------------
     const cgst = subtotal * 0.02;

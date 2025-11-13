@@ -7,31 +7,36 @@ const addressSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    street: {
+      type: String,
+      trim: true,
+      default: null, // 🏠 new field added
+    },
     city: {
       type: String,
       trim: true,
-      default: null, // optional
+      default: null,
     },
     state: {
       type: String,
       trim: true,
-      default: null, // optional
+      default: null,
     },
     pincode: {
       type: String,
       trim: true,
-      default: null, // optional
+      default: null,
     },
     country: {
       type: String,
       trim: true,
-      default: null, // optional
+      default: null,
     },
     phone: {
       type: String,
       required: true,
       trim: true,
-      match: [/^[0-9]{10,15}$/, "Please enter a valid phone number"], // allows 10–15 digits
+      match: [/^[0-9]{10,15}$/, "Please enter a valid phone number"],
     },
     is_default: {
       type: Boolean,
@@ -41,4 +46,5 @@ const addressSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// ✅ Use default export so you can import it directly
 export default mongoose.model("Address", addressSchema);
