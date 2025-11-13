@@ -5,6 +5,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Package files (if you want to ignore them)
+package-lock.json
+
 # Environment variables
 .env
 .env.local
