@@ -1,6 +1,7 @@
 import Order from "../Models/Order.js";
 import OrderItem from "../Models/Orderitem.js";
 import Payment from "../Models/Payment.js";
+import Offer from "../Models/Offer.js";
 import mongoose from "mongoose";
 import { sendEmail } from "../Utils/sendemail.js";
 import { generateInvoicePDF } from "../Utils/generateInvoice.js";
@@ -10,7 +11,7 @@ import fs from "fs";
 // ✅ Create Order using existing OrderItem IDs
 export const createOrder = async (req, res) => {
   try {
-    const { user, address, orderItems, total_amount, notes } = req.body;
+    const { user, address, orderItems, total_amount, notes, offer } = req.body;
 
     // Validate inputs
     if (!orderItems || orderItems.length === 0)
@@ -18,6 +19,24 @@ export const createOrder = async (req, res) => {
 
     if (!user || !address)
       return res.status(400).json({ message: "User and address are required" });
+
+    // ✅ CHECK OFFER VALIDITY & LIMIT
+    if (offer) {
+      const offerDoc = await Offer.findById(offer);
+      if (!offerDoc) return res.status(404).json({ message: "Offer not found" });
+
+      if (offerDoc.usage_limit <= 0) {
+        return res.status(400).json({ message: "Coupon usage limit exceeded" });
+      }
+
+      if (new Date() > new Date(offerDoc.expiry_date)) {
+        return res.status(400).json({ message: "Coupon has expired" });
+      }
+
+      // Decrement usage limit
+      offerDoc.usage_limit -= 1;
+      await offerDoc.save();
+    }
 
     // ✅ Ensure all orderItem IDs exist in the DB
     const existingItems = await OrderItem.find({
@@ -34,7 +53,8 @@ export const createOrder = async (req, res) => {
       address,
       orderItems,
       total_amount,
-      notes
+      notes,
+      offer // Save offer reference
     });
 
     // ✅ Populate full order details
@@ -83,7 +103,14 @@ export const getOrderById = async (req, res) => {
         return res.status(403).json({ message: "Access denied" });
     }
 
-    res.json({ success: true, order });
+
+    // 🔒 Hide trackingId for non-admins
+    const orderObj = order.toObject();
+    if (req.user.role !== "admin" && req.user.role !== "super admin") {
+      delete orderObj.trackingId;
+    }
+
+    res.json({ success: true, order: orderObj });
   } catch (error) {
     console.error("Get Order By ID Error:", error.message);
     res.status(500).json({ message: error.message });
@@ -101,11 +128,11 @@ export const updateOrder = async (req, res) => {
         runValidators: true
       }
     )
-    .populate("user")
-    .populate("address")
-    .populate({ path: "orderItems", populate: { path: "product" } })
-    .populate("offer")
-    .populate("payment");
+      .populate("user")
+      .populate("address")
+      .populate({ path: "orderItems", populate: { path: "product" } })
+      .populate("offer")
+      .populate("payment");
 
     if (!updatedOrder)
       return res.status(404).json({ message: "Order not found" });
@@ -199,6 +226,15 @@ export const getAllOrders = async (req, res) => {
 
     const total = await Order.countDocuments(query);
 
+    // 🔒 Hide trackingId for non-admins
+    if (req.user.role !== "admin" && req.user.role !== "super admin") {
+      orders = orders.map(order => {
+        const orderObj = order.toObject();
+        delete orderObj.trackingId;
+        return orderObj;
+      });
+    }
+
     res.json({
       success: true,
       page: currentPage,
@@ -291,6 +327,99 @@ export const confirmOrderPayment = async (orderId) => {
     return { success: false, message: error.message };
   }
 };
+
+// 🚚 Manually Update Shipment Details
+export const updateShipment = async (req, res) => {
+  try {
+    const { status, trackingId, courierName, expectedDelivery } = req.body;
+
+    // Validate
+    if (!req.params.id)
+      return res.status(400).json({ message: "Order ID required" });
+
+    const order = await Order.findById(req.params.id)
+      .populate("user", "firstName lastName email")
+      .populate("address");
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // 🔐 Only admin can update shipment details
+    if (!req.user || !["admin", "super admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Only admin or super-admin can update shipment" });
+    }
+
+    // 📝 Update shipment fields safely + store update date
+    if (status) {
+      order.shipmentStatus = status;
+      order.shipmentUpdatedAt = new Date(); // ⏱ Save update time
+    }
+
+    // 📌 Automatically set delivered date when status becomes "delivered"
+    if (status === "delivered") {
+      order.deliveredAt = new Date();
+    }
+
+    if (courierName) order.courierName = courierName;
+    if (trackingId) order.trackingId = trackingId; // 📝 Save tracking ID
+    if (expectedDelivery) order.expectedDelivery = expectedDelivery;
+
+    await order.save();
+
+    // 🧾 Create user name safely
+    const userFirst = order.user?.firstName || "Customer";
+    const userLast = order.user?.lastName || "";
+    const userName = `${userFirst} ${userLast}`.trim();
+
+    // 📧 Notify user only if email exists
+    if (order.user && order.user.email) {
+      const subject = `📦 Shipment Update — Order #${order._id}`;
+      const text = `Dear ${userName}, your shipment status has been updated to ${status}.`;
+
+      const html = `
+        <div style="font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color:#0D6EFD; margin-bottom: 10px;">📦 Shipment Update</h2>
+          
+          <p style="font-size: 15px;">
+            Hello <b>${userName}</b>,<br>
+            We’d like to inform you that the shipment status of your order has been updated.
+          </p>
+
+          <div style="background: #F4F6FA; padding: 12px 15px; border-radius: 6px; margin-top: 10px; font-size: 14px;">
+            <p style="margin:5px 0;"><strong>🆔 Order ID:</strong> ${order._id}</p>
+            <p style="margin:5px 0;"><strong>📌 Current Status:</strong> ${status}</p>
+            ${courierName ? `<p style="margin:5px 0;"><strong>🚚 Courier:</strong> ${courierName}</p>` : ""}
+            ${expectedDelivery ? `<p style="margin:5px 0;"><strong>📅 Expected Delivery:</strong> ${new Date(expectedDelivery).toLocaleDateString()}</p>` : ""}
+            ${order.shipmentUpdatedAt ? `<p style="margin:5px 0;"><strong>⏱ Updated On:</strong> ${new Date(order.shipmentUpdatedAt).toLocaleString()}</p>` : ""}
+            ${order.deliveredAt ? `<p style="margin:5px 0;"><strong>🎉 Delivered On:</strong> ${new Date(order.deliveredAt).toLocaleDateString()}</p>` : ""}
+          </div>
+
+          <p style="margin-top: 15px; font-size: 14px;">
+            You can track your shipment using the tracking details provided.
+          </p>
+
+          <p style="margin-top: 20px; font-size: 13px; color:#555;">
+            Thank you for shopping with us! 😊<br>
+            <b style="color:#0D6EFD;">Your Store Team</b>
+          </p>
+        </div>
+      `;
+
+      await sendEmail(order.user.email, subject, text, html);
+    }
+
+    res.json({
+      success: true,
+      message: "Shipment details updated successfully",
+      order
+    });
+
+  } catch (error) {
+    console.error("Shipment Update Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 
 // ✅ Refund order payment and send email
 export const refundOrderPayment = async (orderId, amount) => {

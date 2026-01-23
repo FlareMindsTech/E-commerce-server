@@ -7,20 +7,34 @@ const orderItemSchema = new mongoose.Schema(
       ref: "Order",
       required: true
     },
+
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true
     },
+
     quantity: {
       type: Number,
       required: true,
       min: 1
     },
+
     price: {
       type: Number,
       required: true,
       min: 0
+    },
+
+    // ✅ NEW FIELDS
+    color: {
+      type: String,
+      trim: true
+    },
+
+    size: {
+      type: String,
+      trim: true
     }
   },
   { timestamps: true }
