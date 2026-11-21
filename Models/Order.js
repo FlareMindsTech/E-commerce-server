@@ -2,37 +2,58 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "User", 
-      required: true 
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
-    address: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Address", 
-      required: true 
+    address: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true
     },
     orderItems: [
-      { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "OrderItem", 
-        required: true 
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "OrderItem",
+        required: true
       }
     ],
-    status: { 
-      type: String, 
-      enum: ["pending", "confirmed", "shipped", "delivered", "cancelled", "returned", "refunded"], 
-      default: "pending" 
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+        "refunded"
+      ],
+      default: "pending"
     },
-    offer: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Offer" 
+
+    // 🚚 Add Shipment Fields
+    shipmentStatus: {
+      type: String,
+      enum: ["pending", "packed", "shipped", "out-for-delivery", "delivered"],
+      default: "pending"
     },
-    payment: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Payment" 
+    courierName: { type: String },
+    trackingId: { type: String }, // ⬅️ New tracking ID field
+    expectedDelivery: { type: Date },
+
+    shipmentUpdatedAt: { type: Date }, // ⬅️ New field
+
+    offer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Offer"
     },
-    total_amount: { type: Number, required: true }, 
+    payment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment"
+    },
+    total_amount: { type: Number, required: true },
     notes: String
   },
   { timestamps: true }
