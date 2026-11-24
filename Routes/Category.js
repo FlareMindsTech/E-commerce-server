@@ -14,7 +14,7 @@ const router = express.Router();
 router.post("/create", Auth, authorizeRoles("admin", "super admin"), createCategory);
 
 // Get all categories (All roles)
-router.get("/all", Auth, authorizeRoles("user", "admin", "super admin"), getAllCategories);
+router.get("/all", getAllCategories);
 
 // Get category by ID (All roles)
 router.get("/byId/:id", Auth, authorizeRoles("user", "admin", "super admin"), getCategoryById);

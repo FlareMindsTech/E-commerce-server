@@ -45,21 +45,43 @@ export const createProduct = async (req, res) => {
 // Get All Products
 export const getAllProducts = async (req, res) => {
   try {
-    let { search, page, limit, sortBy = "createdAt", order = "desc" } = req.query;
+    let { search, color, category, page, limit, sortBy = "createdAt", order = "desc" } = req.query;
     let query = {};
 
     if (req.user?.role?.toLowerCase() === "user") query.status = "Available";
 
-    if (search) {
-      const regex = { $regex: search, $options: "i" };
-      query.$or = [
+    // Build filter conditions
+    const andConditions = [];
+
+    // Filter by specific color
+    if (color && color.trim() && color.toLowerCase() !== "all") {
+      andConditions.push({ "variants.color": { $regex: color.trim(), $options: "i" } });
+    }
+
+    // Filter by category name
+    if (category && category.trim()) {
+      const cat = await Category.findOne({ name: { $regex: `^${category.trim()}$`, $options: "i" } });
+      if (cat) {
+        andConditions.push({ category: cat._id });
+      }
+    }
+
+    // Search term
+    if (search && search.trim()) {
+      const regex = { $regex: search.trim(), $options: "i" };
+      const searchOr = [
         { name: regex },
         { description: regex },
         { "variants.sku": regex },
         { "variants.color": regex },
         { "variants.size": regex },
       ];
-      if (!isNaN(search)) query.$or.push({ "variants.price": Number(search) });
+      if (!isNaN(search)) searchOr.push({ "variants.price": Number(search) });
+      andConditions.push({ $or: searchOr });
+    }
+
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
     }
 
     const sortOrder = order.toLowerCase() === "asc" ? 1 : -1;
@@ -80,10 +102,11 @@ export const getAllProducts = async (req, res) => {
     const products = await productsQuery;
     const total = await Product.countDocuments(query);
 
-    if (!products.length) return res.status(404).json({ success: false, message: "No products found" });
-
     // Map images to URLs only
-    const formattedProducts = products.map(p => ({ ...p, images: p.images.map(img => img.url) }));
+    const formattedProducts = (products || []).map(p => ({
+      ...p,
+      images: Array.isArray(p.images) ? p.images.map(img => (typeof img === "object" ? img.url : img)) : []
+    }));
 
     res.json({
       success: true,
