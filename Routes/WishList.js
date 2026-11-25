@@ -3,7 +3,7 @@ import {
   addToWishlist,
   getWishlist,
   removeFromWishlist,
-} from "../Controller/Wishlist.js";
+} from "../Controller/WishList.js";
 
 import { Auth } from "../Middleware/Auth.js";
 

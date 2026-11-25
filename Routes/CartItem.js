@@ -5,7 +5,7 @@ import {
   removeItem,
   getCart,
   getUserCart,
-} from "../Controller/Cartitem.js";
+} from "../Controller/CartItem.js";
 import { Auth } from "../Middleware/Auth.js";
 
 const router = express.Router();

@@ -1,7 +1,7 @@
 import Report from "../Models/Report.js";
 import User from "../Models/User.js";
 import Admin from "../Models/Admin.js";
-import { sendEmail } from "../Utils/sendemail.js";
+import { sendEmail } from "../Utils/sendEmail.js";
 
 // Create Report & Notify Admins
 export const createReport = async (req, res) => {
