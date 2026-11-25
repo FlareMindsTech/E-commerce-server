@@ -1,9 +1,9 @@
 import Order from "../Models/Order.js";
-import OrderItem from "../Models/Orderitem.js";
+import OrderItem from "../Models/OrderItem.js";
 import Payment from "../Models/Payment.js";
 import Offer from "../Models/Offer.js";
 import mongoose from "mongoose";
-import { sendEmail } from "../Utils/sendemail.js";
+import { sendEmail } from "../Utils/sendEmail.js";
 import { generateInvoicePDF } from "../Utils/generateInvoice.js";
 import fs from "fs";
 

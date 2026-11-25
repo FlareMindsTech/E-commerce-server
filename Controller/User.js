@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../Models/User.js";
-import { sendEmail } from "../Utils/sendemail.js";
+import { sendEmail } from "../Utils/sendEmail.js";
 import { v2 as cloudinary } from "cloudinary"; // ✅ Add this line
 import fs from "fs";
 import path from "path";

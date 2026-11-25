@@ -5,7 +5,7 @@ import {
   getOrderItemById,
   updateOrderItem,
   deleteOrderItem
-} from "../Controller/Orderitem.js";
+} from "../Controller/OrderItem.js";
 import { Auth } from "../Middleware/Auth.js";
 
 
