@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../Models/User.js";
-import { sendEmail } from "../Utils/sendemail.js";
+import { sendEmail } from "../Utils/sendEmail.js";
 import { deleteFromBunny } from "../Utils/bunny.js";
 import fs from "fs";
 import path from "path";
