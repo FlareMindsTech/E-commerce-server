@@ -52,4 +52,4 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}" \
-            'ss -tln | grep -q ":7801 " && curl -fsS -I https://api.labelaadvi.com > /dev/null'
+            'pm2 pid ecommerce-server > /dev/null && sleep 2 && ss -tln | grep -q "7801" && CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.labelaadvi.com) && test "$CODE" -lt 500'
