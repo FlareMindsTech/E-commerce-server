@@ -35,7 +35,7 @@ router.put("/update/:id", Auth, updateUserProfile); // update user info (name, p
 router.delete("/delete/:id", Auth, deleteUserProfile); // delete user profile
 
 // ---------- Profile Image Routes ----------
-router.post("/upload-profile", Auth, upload.single("profileImage"), uploadProfileImage); // upload image
+router.post("/upload-profile", Auth, upload.any(), uploadProfileImage); // upload image
 router.get("/profile-image/:id", getProfileImage); // get image URL by userId
 router.delete("/delete-profile-image", Auth, deleteProfileImage); // delete profile image
 

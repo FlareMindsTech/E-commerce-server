@@ -1,4 +1,5 @@
 import Category from "../Models/Category.js";
+import { deleteFromBunny } from "../Utils/bunny.js";
 
 // ---------------- Create Category ----------------
 export const createCategory = async (req, res) => {
@@ -17,7 +18,17 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    const category = await Category.create({ name: name.trim(), description, status });
+    const file = req.file || (req.files && req.files[0]);
+    const image = file ? file.path : (req.body.image || "");
+    const imagePublicId = file ? file.filename : "";
+
+    const category = await Category.create({
+      name: name.trim(),
+      description,
+      status,
+      image,
+      imagePublicId
+    });
     res.status(201).json({ message: "Category created", category });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -32,7 +43,7 @@ export const getAllCategories = async (req, res) => {
     const query = {};
 
     // Only active categories for users
-    if (req.user.role.toLowerCase() === "user") {
+    if (req.user && req.user.role && req.user.role.toLowerCase() === "user") {
       query.status = "active";
     }
 
@@ -98,9 +109,24 @@ export const updateCategory = async (req, res) => {
       if (duplicate) return res.status(400).json({ message: "Category with this name already exists" });
     }
 
+    const updateData = { description, status };
+    if (name) updateData.name = name.trim();
+
+    const file = req.file || (req.files && req.files[0]);
+    if (file) {
+      const existing = await Category.findById(req.params.id);
+      if (existing?.imagePublicId) {
+        await deleteFromBunny(existing.imagePublicId);
+      } else if (existing?.image) {
+        await deleteFromBunny(existing.image);
+      }
+      updateData.image = file.path;
+      updateData.imagePublicId = file.filename;
+    }
+
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name: name?.trim(), description, status },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -116,6 +142,14 @@ export const deleteCategory = async (req, res) => {
   try {
     const category = await Category.findByIdAndDelete(req.params.id);
     if (!category) return res.status(404).json({ message: "Category not found" });
+
+    // Clean up category image from Bunny Storage
+    if (category.imagePublicId) {
+      await deleteFromBunny(category.imagePublicId);
+    } else if (category.image) {
+      await deleteFromBunny(category.image);
+    }
+
     res.json({ message: "Category deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

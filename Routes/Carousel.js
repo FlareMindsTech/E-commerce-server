@@ -14,7 +14,7 @@ router.post(
   "/upload",
   Auth,
   authorizeRoles("super admin","admin"),
-  upload.array("images", 50),
+  upload.any(),
   uploadCarouselImages
 );
 

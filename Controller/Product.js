@@ -1,13 +1,22 @@
 import Category from "../Models/Category.js";
 import Product from "../Models/Product.js";
-import { v2 as cloudinary } from "cloudinary";
+import { deleteFromBunny } from "../Utils/bunny.js";
 
 // ------------------- Product Controllers -------------------
 
 // Create Product
 export const createProduct = async (req, res) => {
   try {
-    const { category, name, description, status, variants } = req.body;
+    let { category, name, description, status, variants } = req.body;
+
+    // Support JSON string for variants if submitted as multipart/form-data
+    if (typeof variants === "string") {
+      try {
+        variants = JSON.parse(variants);
+      } catch (e) {
+        // keep as is if not JSON
+      }
+    }
 
     // Validate category
     const cat = await Category.findById(category);
@@ -27,13 +36,17 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // Collect any uploaded images from Bunny Storage
+    const files = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+    const initialImages = files.map((f) => ({ url: f.path, public_id: f.filename }));
+
     const product = await Product.create({
       category,
       name,
       description,
       status: ["Available", "Out of Stock", "Discontinued"].includes(status) ? status : "Available",
       variants: variants || [],
-      images: [], // no images at creation
+      images: initialImages,
     });
 
     res.status(201).json({ success: true, message: "Product created successfully", data: product });
@@ -137,16 +150,19 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// Upload Product Image
+// Upload Product Image (Supports single or multiple images via Bunny)
 export const uploadProductImage = async (req, res) => {
   try {
     const { productId } = req.body;
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const files = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+    if (files.length === 0) return res.status(400).json({ message: "No file uploaded" });
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    product.images.push({ url: req.file.path, public_id: req.file.filename });
+    files.forEach((f) => {
+      product.images.push({ url: f.path, public_id: f.filename });
+    });
     await product.save();
 
     res.json({ success: true, message: "Image uploaded successfully", data: product });
@@ -165,7 +181,7 @@ export const deleteProductImage = async (req, res) => {
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    await cloudinary.uploader.destroy(public_id);
+    await deleteFromBunny(public_id);
     product.images = product.images.filter(img => img.public_id !== public_id);
     await product.save();
 
@@ -199,16 +215,19 @@ export const updateProduct = async (req, res) => {
 
     if (variants) product.variants = variants;
 
-    // Remove images from Cloudinary
+    // Remove images from Bunny Storage
     if (removeImages?.length > 0) {
       for (let id of removeImages) {
-        await cloudinary.uploader.destroy(id);
+        await deleteFromBunny(id);
         product.images = product.images.filter(img => img.public_id !== id);
       }
     }
 
-    // Add uploaded image
-    if (req.file) product.images.push({ url: req.file.path, public_id: req.file.filename });
+    // Add newly uploaded images from Bunny Storage
+    const newFiles = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+    newFiles.forEach((f) => {
+      product.images.push({ url: f.path, public_id: f.filename });
+    });
 
     await product.save();
     res.json({ success: true, message: "Product updated successfully", data: product });
@@ -222,6 +241,15 @@ export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // Clean up all product images from Bunny Storage
+    if (product.images && product.images.length > 0) {
+      for (let img of product.images) {
+        if (img.public_id) await deleteFromBunny(img.public_id);
+        else if (img.url) await deleteFromBunny(img.url);
+      }
+    }
+
     res.json({ success: true, message: "Product deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

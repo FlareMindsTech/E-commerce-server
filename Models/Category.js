@@ -15,6 +15,14 @@ const categorySchema = new mongoose.Schema(
       maxlength:200,
       default: null,
     },
+    image: {
+      type: String,
+      default: "",
+    },
+    imagePublicId: {
+      type: String,
+      default: "",
+    },
     status: {
       type: String,
       enum: {

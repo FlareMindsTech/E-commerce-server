@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../Models/User.js";
 import { sendEmail } from "../Utils/sendemail.js";
-import { v2 as cloudinary } from "cloudinary"; // ✅ Add this line
+import { deleteFromBunny } from "../Utils/bunny.js";
 import fs from "fs";
 import path from "path";
 
@@ -334,6 +334,13 @@ export const deleteUserProfile = async (req, res) => {
     // 🗑 Hard Delete User
     await User.findByIdAndDelete(userIdToDelete);
 
+    // Clean up profile image from Bunny Storage
+    if (user.profileImagePublicId) {
+      await deleteFromBunny(user.profileImagePublicId);
+    } else if (user.profileImage) {
+      await deleteFromBunny(user.profileImage);
+    }
+
     res.json({
       success: true,
       message: "User account deleted permanently",
@@ -353,24 +360,22 @@ export const deleteUserProfile = async (req, res) => {
 // ---------------- Upload Profile Image ----------------
 export const uploadProfileImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const file = req.file || (req.files && req.files[0]);
+    if (!file) return res.status(400).json({ message: "No file uploaded" });
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Delete old image from Cloudinary if exists
+    // Delete old image from Bunny Storage if exists
     if (user.profileImagePublicId) {
-      await cloudinary.uploader.destroy(user.profileImagePublicId);
+      await deleteFromBunny(user.profileImagePublicId);
+    } else if (user.profileImage) {
+      await deleteFromBunny(user.profileImage);
     }
 
-    // Upload new image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "boutique/profile",
-      transformation: [{ quality: "auto", fetch_format: "auto" }],
-    });
-
-    user.profileImage = result.secure_url;
-    user.profileImagePublicId = result.public_id;
+    // Bunny storage engine provides CDN URL in file.path and relative path in file.filename
+    user.profileImage = file.path;
+    user.profileImagePublicId = file.filename;
     await user.save();
 
     res.json({ message: "Profile image uploaded successfully", profileImage: user.profileImage });
@@ -385,7 +390,6 @@ export const getProfileImage = async (req, res) => {
       return res.status(404).json({ message: "Profile image not found" });
     }
 
-    // Just return the Cloudinary URL
     res.json({ profileImage: user.profileImage });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -396,12 +400,16 @@ export const deleteProfileImage = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user.profileImagePublicId) {
+    if (!user.profileImagePublicId && !user.profileImage) {
       return res.status(400).json({ message: "No profile image to delete" });
     }
 
-    // Delete from Cloudinary
-    await cloudinary.uploader.destroy(user.profileImagePublicId);
+    // Delete from Bunny Storage
+    if (user.profileImagePublicId) {
+      await deleteFromBunny(user.profileImagePublicId);
+    } else if (user.profileImage) {
+      await deleteFromBunny(user.profileImage);
+    }
 
     // Clear user fields
     user.profileImage = "";

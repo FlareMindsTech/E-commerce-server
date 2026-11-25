@@ -1,18 +1,20 @@
 import Carousel from "../Models/Carousel.js";
+import { deleteFromBunny } from "../Utils/bunny.js";
 
 /**
  * ✅ Upload Carousel Images (Admin only)
- * - Upload multiple images to Cloudinary
- * - Store file URLs in DB
+ * - Upload multiple images to Bunny Storage
+ * - Store file CDN URLs in DB
  */
 export const uploadCarouselImages = async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    const files = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+    if (files.length === 0) {
       return res.status(400).json({ message: "No images uploaded" });
     }
 
-    // Cloudinary automatically provides URLs in req.files[].path
-    const imageUrls = req.files.map((file) => file.path);
+    // Bunny storage engine provides CDN URLs in files[].path
+    const imageUrls = files.map((file) => file.path);
 
     let carousel = await Carousel.findOne();
 
@@ -25,7 +27,7 @@ export const uploadCarouselImages = async (req, res) => {
     await carousel.save();
 
     return res.status(201).json({
-      message: "Images uploaded successfully to Cloudinary",
+      message: "Images uploaded successfully",
       data: carousel,
     });
   } catch (error) {
@@ -51,11 +53,8 @@ export const getCarouselImages = async (req, res) => {
 /**
  * ✅ Delete a Carousel Image (Admin only)
  * - Removes from DB
- * - (Optional) Delete from Cloudinary using public_id
+ * - Delete from Bunny Storage using image URL or path
  */
-import { v2 as cloudinary } from "cloudinary";
-import url from "url";
-
 export const deleteCarouselImage = async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -72,12 +71,8 @@ export const deleteCarouselImage = async (req, res) => {
     carousel.images = carousel.images.filter((img) => img !== imageUrl);
     await carousel.save();
 
-    // Extract public_id from Cloudinary URL and delete
-    const parsedUrl = url.parse(imageUrl);
-    const parts = parsedUrl.pathname.split("/");
-    const fileName = parts.pop();
-    const publicId = "boutique/carousel/" + fileName.split(".")[0];
-    await cloudinary.uploader.destroy(publicId);
+    // Delete image from Bunny Storage
+    await deleteFromBunny(imageUrl);
 
     res.status(200).json({ message: "Image deleted successfully", data: carousel });
   } catch (error) {

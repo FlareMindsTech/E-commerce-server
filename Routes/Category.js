@@ -7,11 +7,12 @@ import {
   deleteCategory,
 } from "../Controller/Category.js";
 import { Auth, authorizeRoles } from "../Middleware/Auth.js";
+import { upload } from "../Utils/cloud.js";
 
 const router = express.Router();
 
 // Create category (Admin & Super Admin)
-router.post("/create", Auth, authorizeRoles("admin", "super admin"), createCategory);
+router.post("/create", Auth, authorizeRoles("admin", "super admin"), upload.any(), createCategory);
 
 // Get all categories (All roles)
 router.get("/all", getAllCategories);
@@ -20,7 +21,7 @@ router.get("/all", getAllCategories);
 router.get("/byId/:id", Auth, authorizeRoles("user", "admin", "super admin"), getCategoryById);
 
 // Update category (Admin & Super Admin)
-router.put("/update/:id", Auth, authorizeRoles("admin", "super admin"), updateCategory);
+router.put("/update/:id", Auth, authorizeRoles("admin", "super admin"), upload.any(), updateCategory);
 
 // Delete category (Super Admin only)
 router.delete("/delete/:id", Auth, authorizeRoles("super admin"), deleteCategory);

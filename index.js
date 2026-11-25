@@ -65,8 +65,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/carousel", carouselRoutes);
 
 
-// Make uploads folder public
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// All media and images are hosted directly on Bunny CDN (process.env.BUNNY_CDN_URL)
 
 
 
