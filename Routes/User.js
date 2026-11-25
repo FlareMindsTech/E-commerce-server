@@ -29,7 +29,6 @@ router.post("/reset-password/:token", resetPassword);
 router.get("/all", Auth, authorizeRoles("admin", "super admin"), getAllUsers);
 router.get("/byId/:id", Auth, authorizeRoles("admin", "super admin"), getUserById);
 
-// ---------- Normal User Routes ----------
 router.get("/me", Auth, getUserProfile); // view own profile
 router.put("/update/:id", Auth, updateUserProfile); // update user info (name, phone, email, etc.)
 router.delete("/delete/:id", Auth, deleteUserProfile); // delete user profile
